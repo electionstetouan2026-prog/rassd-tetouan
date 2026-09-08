@@ -1,0 +1,50 @@
+@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap");
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+:root {
+  /* هوية بصرية PPS — كحلي/أزرق (D-018) */
+  --brand-navy: #122a55;
+  --brand-navy-2: #0f2245;
+  --brand-blue: #1d4c8b;
+  --brand-blue-hover: #2e6fd9;
+
+  --bg: #f5f7fb;
+  --surface: #eef1f7;
+  --card: #ffffff;
+  --border: #e1e6ef;
+  --text: #10182a;
+  --muted: #5b6577;
+
+  --severity-high: #dc2626;
+  --severity-medium: #d97706;
+  --severity-neutral: #6b7280;
+  --severity-pending: #9ca3af;
+}
+
+[data-theme="dark"] {
+  --bg: #0b1220;
+  --surface: #101a2c;
+  --card: #131f34;
+  --border: #22314c;
+  --text: #eef2fb;
+  --muted: #97a3bd;
+
+  --brand-blue-hover: #4c86ea;
+}
+
+* {
+  border-color: var(--border);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+}
+
+a {
+  color: inherit;
+}
