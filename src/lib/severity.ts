@@ -27,7 +27,6 @@ export const SEVERITY_COLOR: Record<Severity, string> = {
 export const PLATFORM_LABEL: Record<string, string> = {
   facebook: "فيسبوك",
   instagram: "انستغرام",
-  tiktok: "تيكتوك",
   press: "الصحافة",
   other: "أخرى",
 };

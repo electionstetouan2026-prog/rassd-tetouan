@@ -40,9 +40,9 @@ export async function GET() {
         });
         if (suggestion) {
           responseFields = {
-            response_type: suggestion.response_type,
-            response_draft: suggestion.response_draft,
-            response_model_used: suggestion.response_model_used,
+            suggested_response_type: suggestion.response_type,
+            suggested_response_text: suggestion.response_draft,
+            suggested_response_model: suggestion.response_model_used,
             response_generated_at: new Date().toISOString(),
           };
         }

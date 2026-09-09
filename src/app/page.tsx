@@ -4,6 +4,18 @@ import { PLATFORM_LABEL, severityOf } from "@/lib/severity";
 
 export const dynamic = "force-dynamic";
 
+function relativeAr(iso: string | null | undefined) {
+  if (!iso) return "—";
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return "الآن";
+  if (mins < 60) return `منذ ${mins} دقيقة`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `منذ ${hours} ساعة`;
+  const days = Math.floor(hours / 24);
+  return `منذ ${days} يوم`;
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -40,15 +52,33 @@ export default async function DashboardPage() {
 
   return (
     <PageShell title="لوحة القيادة">
+      <div className="flex items-center gap-2 mb-2">
+        <span className="text-xs rounded-full px-3 py-1 bg-green-600/10 text-green-700 flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-600" /> بيانات حية
+        </span>
+        <span className="text-xs rounded-full px-3 py-1 border border-[var(--border)] text-[var(--muted)]">
+          دائرة تطوان · PPS
+        </span>
+      </div>
+      <p className="text-sm text-[var(--muted)] mb-4">رصد حقيقي وشفاف — بلا مؤشرات مزخرفة</p>
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="مجموع الإشارات" value={total} />
-        <StatCard label="خطورة عالية" value={severityCounts.high} color="var(--severity-high)" />
-        <StatCard label="خطورة متوسطة" value={severityCounts.medium} color="var(--severity-medium)" />
-        <StatCard label="بانتظار التحليل" value={severityCounts.pending} color="var(--severity-pending)" />
+        <StatCard label="إجمالي الإشارات" value={total} borderColor="var(--brand-blue)" />
+        <StatCard
+          label="تهديدات عالية (≤60)"
+          value={severityCounts.high}
+          borderColor="var(--severity-high)"
+        />
+        <StatCard
+          label="فالانتظار للتحليل"
+          value={severityCounts.pending}
+          borderColor="var(--severity-medium)"
+        />
+        <StatCard label="عدد المصادر" value={(sources ?? []).length} />
       </div>
 
       <h2 className="text-lg font-semibold mb-3">التوزيع حسب المنصة</h2>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
         {Object.entries(PLATFORM_LABEL).map(([key, label]) => (
           <StatCard key={key} label={label} value={platformCounts[key] ?? 0} />
         ))}
@@ -61,8 +91,7 @@ export default async function DashboardPage() {
             <tr>
               <th className="text-right p-3">المصدر</th>
               <th className="text-right p-3">النوع</th>
-              <th className="text-right p-3">آخر جمع</th>
-              <th className="text-right p-3">آخر نتيجة</th>
+              <th className="text-right p-3">أخر جمع ناجح</th>
             </tr>
           </thead>
           <tbody>
@@ -70,13 +99,12 @@ export default async function DashboardPage() {
               const run = lastRunBySource.get(s.id);
               return (
                 <tr key={s.id} className="border-t border-[var(--border)]">
-                  <td className="p-3">{s.name}</td>
+                  <td className="p-3">
+                    {s.name} {s.type === "rss" && <span className="text-[var(--muted)]">(RSS)</span>}
+                  </td>
                   <td className="p-3">{s.type}</td>
                   <td className="p-3">
-                    {run?.finished_at ? new Date(run.finished_at).toLocaleString("ar-MA") : "—"}
-                  </td>
-                  <td className="p-3">
-                    <StatusDot status={run?.status} /> {run?.items_found ?? "—"}
+                    <StatusDot status={run?.status} /> {relativeAr(run?.finished_at)}
                   </td>
                 </tr>
               );
@@ -88,12 +116,21 @@ export default async function DashboardPage() {
   );
 }
 
-function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
+function StatCard({
+  label,
+  value,
+  borderColor,
+}: {
+  label: string;
+  value: number;
+  borderColor?: string;
+}) {
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4">
-      <div className="text-2xl font-bold" style={color ? { color } : undefined}>
-        {value}
-      </div>
+    <div
+      className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4"
+      style={borderColor ? { borderTop: `3px solid ${borderColor}` } : undefined}
+    >
+      <div className="text-2xl font-bold">{value}</div>
       <div className="text-sm text-[var(--muted)]">{label}</div>
     </div>
   );
@@ -101,7 +138,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 
 function StatusDot({ status }: { status?: string }) {
   const color =
-    status === "success" ? "#16a34a" : status === "error" ? "#dc2626" : "#9ca3af";
+    status === "success" ? "#16a34a" : status === "error" ? "#dc2626" : "#f59e0b";
   return (
     <span
       className="inline-block w-2 h-2 rounded-full ml-1"

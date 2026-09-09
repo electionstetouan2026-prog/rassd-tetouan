@@ -18,7 +18,7 @@ const THEME_INIT_SCRIPT = `
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ar" dir="rtl">
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
         {/* بلا وميض عند التحميل: تحديد الوضع (فاتح/داكن) قبل أول render */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

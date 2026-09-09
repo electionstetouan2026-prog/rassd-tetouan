@@ -1,6 +1,7 @@
 import Link from "next/link";
 import PageShell from "@/components/PageShell";
 import CopyButton from "@/components/CopyButton";
+import AnalyzeButton from "@/components/AnalyzeButton";
 import { createClient } from "@/lib/supabase/server";
 import {
   PLATFORM_LABEL,
@@ -28,10 +29,10 @@ export default async function MentionsPage({
   const { data } = await supabase
     .from("mentions")
     .select(
-      "id, title, content, url, platform, collector_channel, entry_method, region_relevant, threat_score, threat_score_reason, threat_confidence, analyzed_at, response_type, response_draft, collected_at"
+      "id, title, content, url, platform, collector_channel, entry_method, region_relevant, threat_score, threat_score_reason, threat_confidence, threat_model_used, analyzed_at, response_type:suggested_response_type, response_draft:suggested_response_text, collected_at"
     )
     .order("collected_at", { ascending: false })
-    .limit(200);
+    .limit(1000);
 
   const all = data ?? [];
   const withSeverity = all.map((m) => ({ ...m, severity: severityOf(m) }));
@@ -52,28 +53,36 @@ export default async function MentionsPage({
 
   return (
     <PageShell title="الإشارات">
-      <div className="flex justify-between items-center mb-4">
+      <p className="text-sm text-[var(--muted)] mb-4">
+        أخر 50 إشارة مجمعة أو مُدخلة يدويا
+      </p>
+
+      <div className="flex justify-between items-center gap-3 flex-wrap mb-4">
         <div className="flex gap-2 flex-wrap">
-          {SEVERITY_TABS.map((tab) => (
-            <Link
-              key={tab}
-              href={`/mentions?severity=${tab}&platform=${platformFilter}`}
-              className={`text-sm rounded-full px-3 py-1 border ${
-                severityFilter === tab
-                  ? "bg-[var(--brand-blue)] text-white border-[var(--brand-blue)]"
-                  : "border-[var(--border)]"
-              }`}
-            >
-              {tab === "all" ? "الكل" : SEVERITY_LABEL[tab]} ({counts[tab] ?? 0})
-            </Link>
-          ))}
+          <Link
+            href="/mentions/new"
+            className="text-sm rounded-lg bg-[var(--brand-blue)] text-white px-4 py-2"
+          >
+            + إدخال يدوي
+          </Link>
+          <AnalyzeButton pendingCount={counts.pending ?? 0} />
         </div>
-        <Link
-          href="/mentions/new"
-          className="text-sm rounded-lg bg-[var(--brand-blue)] text-white px-4 py-2"
-        >
-          + إدخال يدوي
-        </Link>
+      </div>
+
+      <div className="flex gap-2 flex-wrap mb-4">
+        {SEVERITY_TABS.map((tab) => (
+          <Link
+            key={tab}
+            href={`/mentions?severity=${tab}&platform=${platformFilter}`}
+            className={`text-sm rounded-full px-3 py-1 border ${
+              severityFilter === tab
+                ? "bg-[var(--brand-blue)] text-white border-[var(--brand-blue)]"
+                : "border-[var(--border)]"
+            }`}
+          >
+            {tab === "all" ? "الكل" : SEVERITY_LABEL[tab]} ({counts[tab] ?? 0})
+          </Link>
+        ))}
       </div>
 
       <div className="flex gap-2 flex-wrap mb-6">
@@ -111,6 +120,11 @@ export default async function MentionsPage({
                     إدخال يدوي
                   </span>
                 )}
+                {m.analyzed_at && m.region_relevant === false && (
+                  <span className="text-xs rounded-full px-2 py-0.5 border border-[var(--border)] text-[var(--muted)]">
+                    خارج النطاق
+                  </span>
+                )}
               </div>
               <span className="text-xs text-[var(--muted)] shrink-0">
                 {new Date(m.collected_at).toLocaleString("ar-MA")}
@@ -122,7 +136,9 @@ export default async function MentionsPage({
             )}
             {m.threat_score_reason && (
               <p className="text-xs text-[var(--muted)] mb-2">
-                <strong>لماذا هذا التقييم:</strong> {m.threat_score_reason}
+                <strong>لماذا هذا التقييم:</strong>{" "}
+                {m.threat_model_used && <span>({m.threat_model_used}) </span>}
+                {m.threat_score_reason}
               </p>
             )}
             <div className="flex gap-3 items-center text-xs">
