@@ -7,6 +7,7 @@ import ThemeToggle from "./ThemeToggle";
 const NAV_ITEMS = [
   { href: "/", label: "لوحة القيادة", icon: "📊" },
   { href: "/mentions", label: "الإشارات", icon: "📰" },
+  { href: "/observers", label: "المراقبون", icon: "🧑‍💼" },
   { href: "/ciblage", label: "الاستهداف (Ciblage)", icon: "🎯" },
   { href: "/settings", label: "الإعدادات", icon: "⚙️" },
 ];

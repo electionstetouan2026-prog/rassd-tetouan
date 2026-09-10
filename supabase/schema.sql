@@ -182,6 +182,54 @@ create table if not exists public.mention_sightings (
 create index if not exists mention_sightings_mention_idx on public.mention_sightings (mention_id);
 create index if not exists mention_sightings_channel_idx on public.mention_sightings (channel);
 
+-- ------------------------------------------------------------
+-- 9) جرد المراقبين ومتابعة مكاتب التصويت (T-057/T-058، الوحدة الثانية
+--    من التحول الشامل D-023). البيانات المرجعية (communes/polling_stations)
+--    تُعبّى بملف seed منفصل (راجع supabase/seed_communes.sql) اعتمادا على
+--    S-016 (حقيقي لجماعة تطوان) وS-017/S-018/S-019 (22 جماعة إقليم تطوان).
+-- ------------------------------------------------------------
+create table if not exists public.communes (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  type text not null default 'قروي' check (type in ('حضري', 'قروي')),
+  registered_voters_est integer,
+  has_detailed_station_data boolean not null default false,
+  notes text,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.polling_stations (
+  id uuid primary key default gen_random_uuid(),
+  commune_id uuid not null references public.communes(id) on delete cascade,
+  center_name text not null,
+  sub_office_number integer,
+  approx_zone text,
+  coordinates text,
+  map_link text,
+  location_confirmed text default 'غير محدد'
+    check (location_confirmed in ('مؤكد', 'يحتاج تأكيد', 'غير محدد')),
+  is_mock boolean not null default false,
+  source text not null default 'S-016',
+  created_at timestamptz not null default now()
+);
+create index if not exists polling_stations_commune_idx on public.polling_stations (commune_id);
+
+create table if not exists public.observers (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  phone text,
+  polling_station_id uuid references public.polling_stations(id) on delete set null,
+  confirmation_status text not null default 'لم يُعيّن'
+    check (confirmation_status in ('مؤكد', 'غير مؤكد', 'غايب', 'لم يُعيّن')),
+  last_checked_at timestamptz,
+  notes text,
+  assigned_by uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists observers_station_idx on public.observers (polling_station_id);
+create index if not exists observers_status_idx on public.observers (confirmation_status);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -235,6 +283,31 @@ create policy "authenticated read target_accounts" on public.target_accounts
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write target_accounts" on public.target_accounts;
 create policy "editors write target_accounts" on public.target_accounts
+  for all using (public.is_editor_or_admin());
+
+alter table public.communes enable row level security;
+alter table public.polling_stations enable row level security;
+alter table public.observers enable row level security;
+
+drop policy if exists "authenticated read communes" on public.communes;
+create policy "authenticated read communes" on public.communes
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write communes" on public.communes;
+create policy "editors write communes" on public.communes
+  for all using (public.is_editor_or_admin());
+
+drop policy if exists "authenticated read polling_stations" on public.polling_stations;
+create policy "authenticated read polling_stations" on public.polling_stations
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write polling_stations" on public.polling_stations;
+create policy "editors write polling_stations" on public.polling_stations
+  for all using (public.is_editor_or_admin());
+
+drop policy if exists "authenticated read observers" on public.observers;
+create policy "authenticated read observers" on public.observers
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write observers" on public.observers;
+create policy "editors write observers" on public.observers
   for all using (public.is_editor_or_admin());
 
 -- ============================================================
