@@ -62,7 +62,18 @@ create table if not exists public.communes (
   registered_voters_est integer,
   has_detailed_station_data boolean not null default false,
   notes text,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+
+  -- خط الأساس التاريخي الحقيقي (T-059، نتائج الجماعية 2021 — S-017/S-018،
+  -- مصدرها الرسمي بوابة elections.ma). يُعبّى بسكريبت seed منفصل
+  -- (supabase/seed_communes_2021_baseline.sql)، ماشي بيانات يدوية.
+  participation_rate_2021 numeric,
+  seats_total_2021 integer,
+  districts_count_2021 integer,
+  total_votes_2021 integer,
+  leading_party_2021 text,
+  leading_party_seats_2021 integer,
+  leading_party_pct_2021 numeric
 );
 
 create table if not exists public.polling_stations (
@@ -97,6 +108,34 @@ create table if not exists public.observers (
 create index if not exists observers_station_idx on public.observers (polling_station_id);
 create index if not exists observers_status_idx on public.observers (confirmation_status);
 
+-- ------------------------------------------------------------
+-- 3) خريطة حضور الأحياء/الدواوير/المداشر (T-059/T-060). لا توجد بيانات
+--    رسمية على مستوى الحي/الدوار (بيانات elections.ma تتوقف عند مستوى
+--    الجماعة/الدائرة الانتخابية المرقمة) — هذا الجدول فارغ عمدا، يُعبّى
+--    يدويا من فريق الحملة اعتمادا على معرفتهم الميدانية. خط الأساس
+--    التاريخي الحقيقي (نتائج 2021) موجود على مستوى الجماعة فـ`communes`
+--    أعلاه، ماشي هنا.
+-- ------------------------------------------------------------
+create table if not exists public.commune_zones (
+  id uuid primary key default gen_random_uuid(),
+  commune_id uuid not null references public.communes(id) on delete cascade,
+  name text not null,
+  zone_type text not null default 'حي' check (zone_type in ('حي', 'دوار', 'مدشر')),
+  our_offices_count integer not null default 0,
+  our_presence_pct numeric check (our_presence_pct is null or (our_presence_pct >= 0 and our_presence_pct <= 100)),
+  party_1_name text,
+  party_1_offices integer,
+  party_2_name text,
+  party_2_offices integer,
+  party_3_name text,
+  party_3_offices integer,
+  notes text,
+  updated_by uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists commune_zones_commune_idx on public.commune_zones (commune_id);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -123,4 +162,13 @@ create policy "authenticated read observers" on public.observers
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write observers" on public.observers;
 create policy "editors write observers" on public.observers
+  for all using (public.is_editor_or_admin());
+
+alter table public.commune_zones enable row level security;
+
+drop policy if exists "authenticated read commune_zones" on public.commune_zones;
+create policy "authenticated read commune_zones" on public.commune_zones
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write commune_zones" on public.commune_zones;
+create policy "editors write commune_zones" on public.commune_zones
   for all using (public.is_editor_or_admin());

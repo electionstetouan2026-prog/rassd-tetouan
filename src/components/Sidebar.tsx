@@ -7,6 +7,7 @@ import ThemeToggle from "./ThemeToggle";
 const NAV_ITEMS = [
   { href: "/", label: "لوحة القيادة", icon: "📊" },
   { href: "/observers", label: "المراقبون", icon: "🧑‍💼" },
+  { href: "/presence", label: "خريطة الحضور", icon: "🗺️" },
 ];
 
 export default function Sidebar() {
