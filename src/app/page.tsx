@@ -1,116 +1,67 @@
 import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
-import { PLATFORM_LABEL, severityOf } from "@/lib/severity";
 
 export const dynamic = "force-dynamic";
-
-function relativeAr(iso: string | null | undefined) {
-  if (!iso) return "—";
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diffMs / 60000);
-  if (mins < 1) return "الآن";
-  if (mins < 60) return `منذ ${mins} دقيقة`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  const days = Math.floor(hours / 24);
-  return `منذ ${days} يوم`;
-}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
 
-  const [{ data: mentions }, { data: sources }] = await Promise.all([
-    supabase
-      .from("mentions")
-      .select("id, platform, analyzed_at, threat_score, collected_at")
-      .order("collected_at", { ascending: false })
-      .limit(1000),
-    supabase.from("sources").select("id, name, type, is_active, url"),
+  const [{ data: stations }, { data: observers }, { data: communes }] = await Promise.all([
+    supabase.from("polling_stations").select("id, is_mock"),
+    supabase.from("observers").select("id, confirmation_status, polling_station_id"),
+    supabase.from("communes").select("id, name, has_detailed_station_data"),
   ]);
 
-  const allMentions = mentions ?? [];
-  const total = allMentions.length;
-  const severityCounts = { high: 0, medium: 0, neutral: 0, pending: 0 };
-  const platformCounts: Record<string, number> = {};
-  for (const m of allMentions) {
-    severityCounts[severityOf(m)]++;
-    platformCounts[m.platform ?? "other"] = (platformCounts[m.platform ?? "other"] ?? 0) + 1;
-  }
+  const allStations = stations ?? [];
+  const allObservers = observers ?? [];
+  const allCommunes = communes ?? [];
 
-  const { data: lastRuns } = await supabase
-    .from("collection_runs")
-    .select("source_id, finished_at, status, items_found")
-    .order("finished_at", { ascending: false, nullsFirst: false })
-    .limit(200);
+  const realStations = allStations.filter((s) => !s.is_mock);
+  const confirmedStationIds = new Set(
+    allObservers
+      .filter((o) => o.confirmation_status === "مؤكد" && o.polling_station_id)
+      .map((o) => o.polling_station_id)
+  );
+  const coveredReal = realStations.filter((s) => confirmedStationIds.has(s.id)).length;
 
-  const lastRunBySource = new Map<string, NonNullable<typeof lastRuns>[number]>();
-  for (const run of lastRuns ?? []) {
-    if (run.source_id && !lastRunBySource.has(run.source_id)) {
-      lastRunBySource.set(run.source_id, run);
-    }
+  const statusCounts: Record<string, number> = {};
+  for (const o of allObservers) {
+    statusCounts[o.confirmation_status] = (statusCounts[o.confirmation_status] ?? 0) + 1;
   }
 
   return (
     <PageShell title="لوحة القيادة">
       <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs rounded-full px-3 py-1 bg-green-600/10 text-green-700 flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-600" /> بيانات حية
-        </span>
         <span className="text-xs rounded-full px-3 py-1 border border-[var(--border)] text-[var(--muted)]">
           دائرة تطوان · PPS
         </span>
       </div>
-      <p className="text-sm text-[var(--muted)] mb-4">رصد حقيقي وشفاف — بلا مؤشرات مزخرفة</p>
+      <p className="text-sm text-[var(--muted)] mb-4">منصة إدارة الحملة — بيانات حية من قاعدة المراقبين ومكاتب التصويت</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="إجمالي الإشارات" value={total} borderColor="var(--brand-blue)" />
+        <StatCard label="الجماعات المسجلة" value={allCommunes.length} borderColor="var(--brand-blue)" />
+        <StatCard label="مكاتب التصويت (بيانات حقيقية)" value={realStations.length} />
         <StatCard
-          label="تهديدات عالية (≤60)"
-          value={severityCounts.high}
+          label="مكاتب مغطاة بمراقب مؤكد"
+          value={coveredReal}
           borderColor="var(--severity-high)"
         />
-        <StatCard
-          label="فالانتظار للتحليل"
-          value={severityCounts.pending}
-          borderColor="var(--severity-medium)"
-        />
-        <StatCard label="عدد المصادر" value={(sources ?? []).length} />
+        <StatCard label="إجمالي المراقبين" value={allObservers.length} />
       </div>
 
-      <h2 className="text-lg font-semibold mb-3">التوزيع حسب المنصة</h2>
+      <h2 className="text-lg font-semibold mb-3">حالة المراقبين</h2>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        {Object.entries(PLATFORM_LABEL).map(([key, label]) => (
-          <StatCard key={key} label={label} value={platformCounts[key] ?? 0} />
+        {["مؤكد", "غير مؤكد", "غايب", "لم يُعيّن"].map((status) => (
+          <StatCard key={status} label={status} value={statusCounts[status] ?? 0} />
         ))}
       </div>
 
-      <h2 className="text-lg font-semibold mb-3">حالة مصادر الجمع</h2>
-      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] overflow-hidden">
-        <table className="w-full text-sm">
-          <thead className="bg-[var(--surface)] text-[var(--muted)]">
-            <tr>
-              <th className="text-right p-3">المصدر</th>
-              <th className="text-right p-3">النوع</th>
-              <th className="text-right p-3">أخر جمع ناجح</th>
-            </tr>
-          </thead>
-          <tbody>
-            {(sources ?? []).map((s) => {
-              const run = lastRunBySource.get(s.id);
-              return (
-                <tr key={s.id} className="border-t border-[var(--border)]">
-                  <td className="p-3">
-                    {s.name} {s.type === "rss" && <span className="text-[var(--muted)]">(RSS)</span>}
-                  </td>
-                  <td className="p-3">{s.type}</td>
-                  <td className="p-3">
-                    <StatusDot status={run?.status} /> {relativeAr(run?.finished_at)}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 text-sm text-[var(--muted)]">
+        لمتابعة تفاصيل المراقبين وتعيين مكاتب التصويت، انتقل إلى صفحة{" "}
+        <a href="/observers" className="text-[var(--brand-blue)] underline">
+          المراقبون
+        </a>
+        .
       </div>
     </PageShell>
   );
@@ -133,16 +84,5 @@ function StatCard({
       <div className="text-2xl font-bold">{value}</div>
       <div className="text-sm text-[var(--muted)]">{label}</div>
     </div>
-  );
-}
-
-function StatusDot({ status }: { status?: string }) {
-  const color =
-    status === "success" ? "#16a34a" : status === "error" ? "#dc2626" : "#f59e0b";
-  return (
-    <span
-      className="inline-block w-2 h-2 rounded-full ml-1"
-      style={{ background: color }}
-    />
   );
 }

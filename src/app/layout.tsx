@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "منصة رصد تطوان",
-  description: "منصة رصد ومراقبة — حملة زهير الركاني، دائرة تطوان",
+  title: "منصة إدارة الحملة — تطوان",
+  description: "منصة إدارة حملة زهير الركاني، دائرة تطوان",
 };
 
 const THEME_INIT_SCRIPT = `

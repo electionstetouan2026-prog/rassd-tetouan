@@ -6,10 +6,7 @@ import ThemeToggle from "./ThemeToggle";
 
 const NAV_ITEMS = [
   { href: "/", label: "لوحة القيادة", icon: "📊" },
-  { href: "/mentions", label: "الإشارات", icon: "📰" },
   { href: "/observers", label: "المراقبون", icon: "🧑‍💼" },
-  { href: "/ciblage", label: "الاستهداف (Ciblage)", icon: "🎯" },
-  { href: "/settings", label: "الإعدادات", icon: "⚙️" },
 ];
 
 export default function Sidebar() {
@@ -21,7 +18,7 @@ export default function Sidebar() {
       style={{ background: "linear-gradient(180deg, var(--brand-navy) 0%, var(--brand-navy-2) 100%)" }}
     >
       <div>
-        <div className="text-white font-bold text-lg mb-6 px-2">منصة رصد تطوان</div>
+        <div className="text-white font-bold text-lg mb-6 px-2">منصة إدارة الحملة — تطوان</div>
         <nav className="space-y-1">
           {NAV_ITEMS.map((item) => {
             const active = pathname === item.href;

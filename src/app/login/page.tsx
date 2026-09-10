@@ -29,7 +29,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-[var(--surface)]" dir="rtl">
       <div className="w-full max-w-sm rounded-2xl border border-[var(--border)] bg-[var(--card)] p-8 shadow-sm">
-        <h1 className="text-xl font-bold text-[var(--brand-navy)] mb-1">منصة رصد تطوان</h1>
+        <h1 className="text-xl font-bold text-[var(--brand-navy)] mb-1">منصة إدارة الحملة — تطوان</h1>
         <p className="text-sm text-[var(--muted)] mb-6">تسجيل الدخول — للفريق المخول فقط</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
