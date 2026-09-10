@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconSun, IconMoon } from "./icons";
 
 export default function ThemeToggle() {
   const [theme, setTheme] = useState<"light" | "dark">("light");
@@ -22,9 +23,9 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={toggle}
-      className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-white/80 hover:bg-white/10 transition"
+      className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] font-bold text-white/70 hover:bg-white/10 transition"
     >
-      <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+      {theme === "dark" ? <IconSun /> : <IconMoon />}
       <span>{theme === "dark" ? "وضع فاتح" : "وضع داكن"}</span>
     </button>
   );

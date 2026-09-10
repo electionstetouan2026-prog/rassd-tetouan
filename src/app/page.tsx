@@ -1,5 +1,6 @@
 import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
+import { IconDashboard } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +10,6 @@ const STATUS_COLOR: Record<string, string> = {
   "غير مؤكد": "var(--severity-medium)",
   "غايب": "var(--severity-high)",
   "لم يُعيّن": "var(--severity-pending)",
-};
-const STATUS_ROTATE: Record<string, string> = {
-  "مؤكد": "-rotate-2",
-  "غير مؤكد": "rotate-1",
-  "غايب": "-rotate-1",
-  "لم يُعيّن": "rotate-2",
 };
 
 export default async function DashboardPage() {
@@ -44,51 +39,47 @@ export default async function DashboardPage() {
   }
 
   return (
-    <PageShell title="لوحة القيادة">
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs rounded-full px-3 py-1 border-2 border-dashed border-[var(--brand-blue)] text-[var(--brand-blue)] font-semibold">
+    <PageShell
+      title="لوحة القيادة"
+      subtitle="منصة إدارة الحملة — بيانات حية من قاعدة المراقبين ومكاتب التصويت"
+      icon={<IconDashboard />}
+    >
+      <div className="flex items-center gap-2 mb-5">
+        <span className="text-sm rounded-full px-4 py-1.5 bg-[var(--card)] border border-[var(--border)] text-[var(--brand-blue)] font-bold shadow-sm">
           دائرة تطوان · PPS
         </span>
       </div>
-      <p className="text-sm text-[var(--muted)] mb-5">منصة إدارة الحملة — بيانات حية من قاعدة المراقبين ومكاتب التصويت</p>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-        <StatCard label="الجماعات المسجلة" value={allCommunes.length} borderColor="var(--brand-blue)" />
-        <StatCard label="مكاتب التصويت (بيانات حقيقية)" value={realStations.length} />
-        <StatCard
-          label="مكاتب مغطاة بمراقب مؤكد"
-          value={coveredReal}
-          borderColor="var(--severity-neutral)"
-        />
-        <StatCard label="إجمالي المراقبين" value={allObservers.length} />
+        <StatCard label="الجماعات المسجلة" value={allCommunes.length} accent="var(--brand-blue)" />
+        <StatCard label="مكاتب التصويت (بيانات حقيقية)" value={realStations.length} accent="var(--accent-teal)" />
+        <StatCard label="مكاتب مغطاة بمراقب مؤكد" value={coveredReal} accent="var(--severity-neutral)" />
+        <StatCard label="إجمالي المراقبين" value={allObservers.length} accent="var(--severity-medium)" />
       </div>
 
-      <h2 className="text-lg font-extrabold mb-3 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-[var(--brand-blue)] inline-block" />
-        حالة المراقبين
-      </h2>
-      <div className="flex flex-wrap gap-4 mb-8">
+      <h2 className="text-xl font-extrabold mb-4 text-[var(--heading)]">حالة المراقبين</h2>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
         {STATUS_ORDER.map((status) => (
           <div
             key={status}
-            className={`border-2 rounded-lg px-5 py-3 text-center font-extrabold ${STATUS_ROTATE[status]}`}
-            style={{ borderColor: STATUS_COLOR[status], color: STATUS_COLOR[status] }}
+            className="rounded-xl bg-[var(--card)] border border-[var(--border)] p-5 text-center shadow-sm"
           >
-            <div className="text-2xl">{statusCounts[status] ?? 0}</div>
-            <div className="text-[11px] font-semibold mt-0.5">{status}</div>
+            <div className="text-3xl font-extrabold" style={{ color: STATUS_COLOR[status] }}>
+              {statusCounts[status] ?? 0}
+            </div>
+            <div className="text-sm font-bold text-[var(--muted)] mt-1.5">{status}</div>
           </div>
         ))}
       </div>
 
-      <div
-        className="rounded-xl border-2 border-dashed p-4 text-sm text-[var(--muted)] bg-[var(--card)]"
-        style={{ borderColor: "var(--brand-blue)" }}
-      >
-        لمتابعة تفاصيل المراقبين وتعيين مكاتب التصويت، انتقل إلى صفحة{" "}
-        <a href="/observers" className="text-[var(--brand-blue)] font-bold underline">
-          المراقبون
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 text-[15px] text-[var(--muted)] flex items-center justify-between flex-wrap gap-3 shadow-sm">
+        <span>لمتابعة تفاصيل المراقبين وتعيين مكاتب التصويت، انتقل إلى صفحة المراقبون</span>
+        <a
+          href="/observers"
+          className="text-white font-bold px-5 py-2 rounded-lg bg-[var(--brand-blue)] hover:bg-[var(--brand-blue-hover)] transition shrink-0"
+        >
+          فتح المراقبون ←
         </a>
-        .
       </div>
     </PageShell>
   );
@@ -97,19 +88,16 @@ export default async function DashboardPage() {
 function StatCard({
   label,
   value,
-  borderColor,
+  accent,
 }: {
   label: string;
   value: number;
-  borderColor?: string;
+  accent: string;
 }) {
   return (
-    <div
-      className="rounded-lg border border-[var(--border)] bg-[var(--card)] p-4 shadow-[3px_4px_0_rgba(43,36,23,0.08)]"
-      style={borderColor ? { borderTop: `3px solid ${borderColor}` } : undefined}
-    >
-      <div className="text-2xl font-extrabold">{value}</div>
-      <div className="text-sm text-[var(--muted)] font-medium">{label}</div>
+    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm" style={{ borderTop: `3px solid ${accent}` }}>
+      <div className="text-3xl font-extrabold text-[var(--heading)]">{value}</div>
+      <div className="text-sm font-bold text-[var(--muted)] mt-1.5">{label}</div>
     </div>
   );
 }

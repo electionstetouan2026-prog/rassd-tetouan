@@ -1,49 +1,45 @@
-@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Almarai:wght@400;700;800&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  /* هوية بصرية "الدفتر الميداني" — دافئة وورقية (D-028، تحل محل الكحلي/الأزرق D-018) */
-  --brand-navy: #2b2417; /* حبر داكن — رأس الشريط الجانبي والعناوين */
-  --brand-navy-2: #1f1a10;
-  --brand-blue: #c1502e; /* لون مميز (تيراكوتا/طوبي) — أزرار، روابط، حالة نشطة */
-  --brand-blue-hover: #a8431f;
+  /* هوية بصرية جديدة (T-071 v2) — مستلهمة من واجهات لوحات تحكم احترافية،
+     بألوان حزب التقدم والاشتراكية (كحلي/أزرق) مستعملة بطريقة إبداعية مع لمسة
+     تركوازية ثانوية. ملاحظة مهمة: --brand-navy تُستعمل حصريا كخلفية (الشريط
+     الجانبي/البانر) وماشي كلون نص أبدا — لتفادي مشكل التباين (نص بلون الخلفية)
+     اللي وقع فالنسخة السابقة. أي نص بارز كيستعمل --heading، اللي كيتبدل بحال
+     ما كيلزم بين الوضع الفاتح والداكن. */
+  --brand-navy: #10203f;
+  --brand-navy-2: #0a1830;
+  --brand-blue: #2f6fed;
+  --brand-blue-hover: #1f56c4;
+  --accent-teal: #0d9488;
 
-  --bg: #f2e9d6;
-  --surface: #ece0c5;
-  --card: #fdf8ea;
-  --border: #d8c9a3;
-  --text: #2b2417;
-  --muted: #8a7c63;
+  --bg: #f4f6fb;
+  --surface: #eef1f8;
+  --card: #ffffff;
+  --border: #e2e6f0;
+  --text: #101828;
+  --muted: #5d6b82;
+  --heading: #10203f;
 
-  --severity-high: #a83f2e; /* غايب */
-  --severity-medium: #b98a2e; /* غير مؤكد */
-  --severity-neutral: #4f6b4a; /* مؤكد */
-  --severity-pending: #8a7c63; /* لم يُعيّن */
-
-  --paper-lines: repeating-linear-gradient(
-    0deg,
-    rgba(43, 36, 23, 0.02) 0px,
-    rgba(43, 36, 23, 0.02) 1px,
-    transparent 1px,
-    transparent 32px
-  );
+  --severity-high: #dc3b30; /* غايب */
+  --severity-medium: #e8a412; /* غير مؤكد */
+  --severity-neutral: #17a673; /* مؤكد */
+  --severity-pending: #8e97a8; /* لم يُعيّن */
 }
 
 [data-theme="dark"] {
-  --brand-navy: #14100a;
-  --brand-navy-2: #0d0a06;
-  --brand-blue-hover: #e2793f;
+  --bg: #0b1220;
+  --surface: #101a2c;
+  --card: #131f34;
+  --border: #263352;
+  --text: #eef2fb;
+  --muted: #9aa7c2;
+  --heading: #eef2fb;
 
-  --bg: #1c1710;
-  --surface: #241d14;
-  --card: #2a2116;
-  --border: #3d3222;
-  --text: #f2e9d6;
-  --muted: #a8987a;
-
-  --paper-lines: none;
+  --brand-blue-hover: #5588f5;
 }
 
 * {
@@ -53,9 +49,8 @@
 html,
 body {
   background: var(--bg);
-  background-image: var(--paper-lines);
   color: var(--text);
-  font-family: "Cairo", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Almarai", ui-sans-serif, system-ui, sans-serif;
 }
 
 a {
