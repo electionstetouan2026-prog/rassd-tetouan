@@ -1,37 +1,49 @@
-@import url("https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 :root {
-  /* هوية بصرية PPS — كحلي/أزرق (D-018) */
-  --brand-navy: #122a55;
-  --brand-navy-2: #0f2245;
-  --brand-blue: #1d4c8b;
-  --brand-blue-hover: #2e6fd9;
+  /* هوية بصرية "الدفتر الميداني" — دافئة وورقية (D-028، تحل محل الكحلي/الأزرق D-018) */
+  --brand-navy: #2b2417; /* حبر داكن — رأس الشريط الجانبي والعناوين */
+  --brand-navy-2: #1f1a10;
+  --brand-blue: #c1502e; /* لون مميز (تيراكوتا/طوبي) — أزرار، روابط، حالة نشطة */
+  --brand-blue-hover: #a8431f;
 
-  --bg: #f5f7fb;
-  --surface: #eef1f7;
-  --card: #ffffff;
-  --border: #e1e6ef;
-  --text: #10182a;
-  --muted: #5b6577;
+  --bg: #f2e9d6;
+  --surface: #ece0c5;
+  --card: #fdf8ea;
+  --border: #d8c9a3;
+  --text: #2b2417;
+  --muted: #8a7c63;
 
-  --severity-high: #dc2626;
-  --severity-medium: #d97706;
-  --severity-neutral: #6b7280;
-  --severity-pending: #9ca3af;
+  --severity-high: #a83f2e; /* غايب */
+  --severity-medium: #b98a2e; /* غير مؤكد */
+  --severity-neutral: #4f6b4a; /* مؤكد */
+  --severity-pending: #8a7c63; /* لم يُعيّن */
+
+  --paper-lines: repeating-linear-gradient(
+    0deg,
+    rgba(43, 36, 23, 0.02) 0px,
+    rgba(43, 36, 23, 0.02) 1px,
+    transparent 1px,
+    transparent 32px
+  );
 }
 
 [data-theme="dark"] {
-  --bg: #0b1220;
-  --surface: #101a2c;
-  --card: #131f34;
-  --border: #22314c;
-  --text: #eef2fb;
-  --muted: #97a3bd;
+  --brand-navy: #14100a;
+  --brand-navy-2: #0d0a06;
+  --brand-blue-hover: #e2793f;
 
-  --brand-blue-hover: #4c86ea;
+  --bg: #1c1710;
+  --surface: #241d14;
+  --card: #2a2116;
+  --border: #3d3222;
+  --text: #f2e9d6;
+  --muted: #a8987a;
+
+  --paper-lines: none;
 }
 
 * {
@@ -41,8 +53,9 @@
 html,
 body {
   background: var(--bg);
+  background-image: var(--paper-lines);
   color: var(--text);
-  font-family: "Tajawal", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Cairo", ui-sans-serif, system-ui, sans-serif;
 }
 
 a {
