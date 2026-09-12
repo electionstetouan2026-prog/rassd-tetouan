@@ -293,22 +293,30 @@ create index if not exists voters_commune_idx on public.voters (commune_id);
 create index if not exists voters_polling_station_idx on public.voters (polling_station_id);
 create index if not exists voters_district_idx on public.voters (district_raw);
 
--- تجميع مُسبق (view) بدل جلب 270 ألف صف فكود التطبيق فـ"الكتل الساخنة"
--- (src/app/hot-blocks) — security_invoker=on باش الـview يحترم RLS
--- ديال voters حسب المستخدم القاري، ماشي صلاحيات منشئ الـview.
-create or replace view public.voters_by_commune
-  with (security_invoker = on) as
+-- تجميع مُسبق بدل جلب 270 ألف صف فكود التطبيق فـ"الكتل الساخنة"
+-- (src/app/hot-blocks). تجربة أولى بـview عادية (security_invoker=on)
+-- بانت سريعة جدا (362ms) لما تُشغّل مباشرة فSQL Editor (صلاحيات
+-- postgres، بلا حد زمني)، لكن كانت كتتقطع بخطأ "statement timeout"
+-- (57014) لما التطبيق كيقرا منها عبر PostgREST/authenticated —
+-- الحد الزمني والموارد المخصصة لهاد الدور فمشروع Supabase المجاني
+-- محدودة بزاف. الحل: materialized view — النتيجة محسوبة ومخزّنة
+-- مسبقا، فالقراءة وقت الطلب ما فيها حتى GROUP BY، غير قراءة 22/594
+-- صف جاهزين. تُحدَّث (refresh) يدويا بعد أي استيراد/تعديل جديد
+-- لقاعدة voters (راجع تعليمة REFRESH فآخر supabase/import_voters.sql).
+create materialized view if not exists public.voters_by_commune as
   select commune_id, count(*) as voter_count
   from public.voters
   where commune_id is not null
   group by commune_id;
 
-create or replace view public.voters_by_polling_station
-  with (security_invoker = on) as
+create materialized view if not exists public.voters_by_polling_station as
   select polling_station_id, count(*) as voter_count
   from public.voters
   where polling_station_id is not null
   group by polling_station_id;
+
+grant select on public.voters_by_commune to authenticated, anon;
+grant select on public.voters_by_polling_station to authenticated, anon;
 
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())

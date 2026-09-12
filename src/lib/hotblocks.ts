@@ -36,18 +36,11 @@ export type StationHotBlock = {
  *   priorityScore = 0.5×(ترتيب الناخبين المئوي) + 0.5×(100 − نسبة التغطية)
  */
 export async function getHotBlocksData(supabase: SupabaseClient) {
-  const [communesRes, voterCountsRes, coverage] = await Promise.all([
+  const [{ data: communesRaw }, { data: voterCountsRaw }, coverage] = await Promise.all([
     supabase.from("communes").select("id, name, type").order("name"),
     supabase.from("voters_by_commune").select("commune_id, voter_count"),
     getCoverageData(supabase),
   ]);
-  const { data: communesRaw } = communesRes;
-  const { data: voterCountsRaw, error: voterCountsError } = voterCountsRes;
-  if (voterCountsError) {
-    console.error("[hotblocks] voters_by_commune query failed:", JSON.stringify(voterCountsError));
-  } else {
-    console.error("[hotblocks] voters_by_commune rows:", (voterCountsRaw ?? []).length);
-  }
 
   const communes = (communesRaw ?? []) as Commune[];
   const voterCounts = new Map((voterCountsRaw ?? []).map((r) => [r.commune_id as string, r.voter_count as number]));

@@ -57,3 +57,11 @@ select count(*) as matched_polling_station from public.voters where polling_stat
 
 -- بعد التأكد من الأرقام، يمكن تمسح جدول staging (اختياري):
 -- drop table if exists public.voters_import_staging;
+
+-- ------------------------------------------------------------
+-- إلزامي بعد أي استيراد/تعديل جديد: تحديث الـmaterialized views
+-- (voters_by_commune/voters_by_polling_station) — بلا هذا، صفحة
+-- /hot-blocks غادي تعرض أرقام قديمة (أو فارغة إذا هذا أول استيراد).
+-- ------------------------------------------------------------
+refresh materialized view public.voters_by_commune;
+refresh materialized view public.voters_by_polling_station;
