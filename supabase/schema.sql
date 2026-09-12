@@ -136,6 +136,30 @@ create table if not exists public.commune_zones (
 );
 create index if not exists commune_zones_commune_idx on public.commune_zones (commune_id);
 
+-- ------------------------------------------------------------
+-- 4) البرنامج الميداني اليومي (T-063): مهام ميدانية (توزيع، تعبئة،
+--    اجتماع فريق...) مرتبطة بتاريخ/جماعة/فريق وحالة تقدم. zone_name
+--    نص حر (حي/دوار) — ماشي FK إلزامي لـcommune_zones، لأن بزاف
+--    المهام كتغطي الجماعة كاملة ماشي حي محدد.
+-- ------------------------------------------------------------
+create table if not exists public.field_tasks (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  task_date date not null default current_date,
+  commune_id uuid references public.communes(id) on delete set null,
+  zone_name text,
+  team text,
+  status text not null default 'مخطط' check (status in ('مخطط', 'جارية', 'منجزة', 'ملغاة')),
+  notes text,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists field_tasks_date_idx on public.field_tasks (task_date);
+create index if not exists field_tasks_status_idx on public.field_tasks (status);
+create index if not exists field_tasks_commune_idx on public.field_tasks (commune_id);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -171,4 +195,13 @@ create policy "authenticated read commune_zones" on public.commune_zones
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write commune_zones" on public.commune_zones;
 create policy "editors write commune_zones" on public.commune_zones
+  for all using (public.is_editor_or_admin());
+
+alter table public.field_tasks enable row level security;
+
+drop policy if exists "authenticated read field_tasks" on public.field_tasks;
+create policy "authenticated read field_tasks" on public.field_tasks
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write field_tasks" on public.field_tasks;
+create policy "editors write field_tasks" on public.field_tasks
   for all using (public.is_editor_or_admin());
