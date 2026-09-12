@@ -90,6 +90,14 @@ export function IconShield({ className }: IconProps) {
   );
 }
 
+export function IconFlame({ className }: IconProps) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2.5c1.2 3-1.5 4.5-1.5 7 0 1.4 1 2.5 2.5 2.5s2.5-1.4 2.2-3.2c2 1.5 3.3 4 3.3 6.2 0 4-3.1 7-6.5 7s-6.5-3-6.5-7c0-3.8 2.6-6.4 4.5-9 .6-.8 1.6-2 2-3.5Z" />
+    </svg>
+  );
+}
+
 export function IconMoon({ className }: IconProps) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

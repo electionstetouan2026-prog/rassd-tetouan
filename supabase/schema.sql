@@ -269,6 +269,47 @@ create index if not exists monitoring_reports_commune_idx on public.monitoring_r
 create index if not exists monitoring_reports_status_idx on public.monitoring_reports (status);
 create index if not exists monitoring_reports_severity_idx on public.monitoring_reports (severity);
 
+-- ------------------------------------------------------------
+-- 9) قاعدة الناخبين المستوردة من تطبيق tetouan2026 (طلب علي، 12 شتنبر
+--    2026 — أساس "الكتل الساخنة"). استيراد بخصوصية: الأسماء مختصرة
+--    لحرفين فقط (مثال: "سعد شهبون" ← "س.ش")، بلا عنوان كامل — غير
+--    الجماعة + مكتب التصويت (للربط مع polling_stations الموجود) +
+--    حي/دوار خام (district_raw، نص كما هو من المصدر، بلا تطبيع، لأن
+--    التطبيق المرجعي نفسه عانى من فوضى هاد الحقل — راجع
+--    ADDRESS_GEOCODING_STRATEGY.md فالتطبيق المرجعي).
+--    التعبئة تتم بملف منفصل (supabase/import_voters.sql) بعد رفع
+--    CSV مصدَّر من قاعدة tetouan2026 المحلية — ماشي هنا. id هو نفس
+--    المعرف الأصلي (Voter.id) لتفادي التكرار عند إعادة الاستيراد.
+-- ------------------------------------------------------------
+create table if not exists public.voters (
+  id bigint primary key,
+  initials text not null,
+  commune_id uuid references public.communes(id) on delete set null,
+  polling_station_id uuid references public.polling_stations(id) on delete set null,
+  district_raw text,
+  created_at timestamptz not null default now()
+);
+create index if not exists voters_commune_idx on public.voters (commune_id);
+create index if not exists voters_polling_station_idx on public.voters (polling_station_id);
+create index if not exists voters_district_idx on public.voters (district_raw);
+
+-- تجميع مُسبق (view) بدل جلب 270 ألف صف فكود التطبيق فـ"الكتل الساخنة"
+-- (src/app/hot-blocks) — security_invoker=on باش الـview يحترم RLS
+-- ديال voters حسب المستخدم القاري، ماشي صلاحيات منشئ الـview.
+create or replace view public.voters_by_commune
+  with (security_invoker = on) as
+  select commune_id, count(*) as voter_count
+  from public.voters
+  where commune_id is not null
+  group by commune_id;
+
+create or replace view public.voters_by_polling_station
+  with (security_invoker = on) as
+  select polling_station_id, count(*) as voter_count
+  from public.voters
+  where polling_station_id is not null
+  group by polling_station_id;
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -349,4 +390,13 @@ create policy "authenticated read monitoring_reports" on public.monitoring_repor
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write monitoring_reports" on public.monitoring_reports;
 create policy "editors write monitoring_reports" on public.monitoring_reports
+  for all using (public.is_editor_or_admin());
+
+alter table public.voters enable row level security;
+
+drop policy if exists "authenticated read voters" on public.voters;
+create policy "authenticated read voters" on public.voters
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write voters" on public.voters;
+create policy "editors write voters" on public.voters
   for all using (public.is_editor_or_admin());
