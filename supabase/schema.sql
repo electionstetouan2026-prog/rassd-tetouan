@@ -190,10 +190,10 @@ create table if not exists public.digital_watch_entries (
 create index if not exists digital_watch_date_idx on public.digital_watch_entries (entry_date);
 create index if not exists digital_watch_status_idx on public.digital_watch_entries (status);
 create index if not exists digital_watch_priority_idx on public.digital_watch_entries (priority);
-create index if not exists digital_watch_commune_idx on public.digital_watch_entries (commune_id);
 
 -- ترقية لقاعدة حية شغّلت `digital_watch_entries` من قبل (بلا عمود commune_id) —
--- آمنة تتكرر (add column if not exists)، ماغتبدلش البيانات الموجودة.
+-- لازم تجي قبل أي `create index` على العمود، حيت "create table if not
+-- exists" ما كيضيفش العمود لجدول كاين من قبل (الحالة ديال علي هنا).
 alter table public.digital_watch_entries
   add column if not exists commune_id uuid references public.communes(id) on delete set null;
 create index if not exists digital_watch_commune_idx on public.digital_watch_entries (commune_id);
