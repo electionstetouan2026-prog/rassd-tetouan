@@ -160,6 +160,36 @@ create index if not exists field_tasks_date_idx on public.field_tasks (task_date
 create index if not exists field_tasks_status_idx on public.field_tasks (status);
 create index if not exists field_tasks_commune_idx on public.field_tasks (commune_id);
 
+-- ------------------------------------------------------------
+-- 5) نقطة استقبال اليقظة الرقمية اليومية (T-061): إدخال يدوي لما
+--    يُلاحظ فالفضاء الرقمي (فيسبوك/انستغرام/صحافة/إلخ) — بعد إلغاء
+--    الرصد الآلي نهائيا (D-026)، هذا تسجيل يدوي بحت من الفريق، ماشي
+--    جمع تلقائي. attachment_url رابط حر (Drive/صورة/PDF مرفوع خارجيا)
+--    ماشي رفع ملف مباشر للقاعدة. يُستهلك لاحقا من محرك الترتيب
+--    التنافسي (T-062) مع بيانات حضور الأحياء (commune_zones).
+-- ------------------------------------------------------------
+create table if not exists public.digital_watch_entries (
+  id uuid primary key default gen_random_uuid(),
+  entry_date date not null default current_date,
+  platform text not null default 'أخرى'
+    check (platform in ('فيسبوك', 'انستغرام', 'تيك توك', 'صحافة/موقع', 'أخرى')),
+  source_name text,
+  content_summary text not null,
+  content_url text,
+  attachment_url text,
+  sentiment text not null default 'محايد' check (sentiment in ('إيجابي', 'محايد', 'سلبي')),
+  priority text not null default 'عادي' check (priority in ('عادي', 'مهم', 'عاجل')),
+  status text not null default 'جديد'
+    check (status in ('جديد', 'قيد المعالجة', 'تمت المعالجة', 'مؤرشف')),
+  notes text,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists digital_watch_date_idx on public.digital_watch_entries (entry_date);
+create index if not exists digital_watch_status_idx on public.digital_watch_entries (status);
+create index if not exists digital_watch_priority_idx on public.digital_watch_entries (priority);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -204,4 +234,13 @@ create policy "authenticated read field_tasks" on public.field_tasks
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write field_tasks" on public.field_tasks;
 create policy "editors write field_tasks" on public.field_tasks
+  for all using (public.is_editor_or_admin());
+
+alter table public.digital_watch_entries enable row level security;
+
+drop policy if exists "authenticated read digital_watch_entries" on public.digital_watch_entries;
+create policy "authenticated read digital_watch_entries" on public.digital_watch_entries
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write digital_watch_entries" on public.digital_watch_entries;
+create policy "editors write digital_watch_entries" on public.digital_watch_entries
   for all using (public.is_editor_or_admin());
