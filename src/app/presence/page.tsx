@@ -49,6 +49,13 @@ type Cell = {
   notes: string | null;
 };
 
+type Locality = {
+  id: string;
+  commune_id: string;
+  locality_name: string;
+  voter_count: number;
+};
+
 function pct(n: number | null) {
   if (n === null || n === undefined) return "—";
   return `${Math.round(n * 1000) / 10}%`;
@@ -64,29 +71,35 @@ export default async function PresencePage({
 
   const supabase = await createClient();
 
-  const [{ data: communesRaw }, { data: zonesRaw }, { data: cellsRaw }, coverage] = await Promise.all([
-    supabase
-      .from("communes")
-      .select(
-        "id, name, type, registered_voters_est, participation_rate_2021, seats_total_2021, districts_count_2021, total_votes_2021, leading_party_2021, leading_party_seats_2021, leading_party_pct_2021"
-      )
-      .order("name"),
-    supabase
-      .from("commune_zones")
-      .select(
-        "id, commune_id, name, zone_type, our_offices_count, our_presence_pct, party_1_name, party_1_offices, party_2_name, party_2_offices, party_3_name, party_3_offices, notes, updated_at"
-      )
-      .order("name"),
-    supabase
-      .from("zone_cells")
-      .select("id, zone_id, cell_name, contact_name, contact_phone, established_date, notes")
-      .order("established_date", { ascending: false }),
-    getCoverageData(supabase),
-  ]);
+  const [{ data: communesRaw }, { data: zonesRaw }, { data: cellsRaw }, { data: localitiesRaw }, coverage] =
+    await Promise.all([
+      supabase
+        .from("communes")
+        .select(
+          "id, name, type, registered_voters_est, participation_rate_2021, seats_total_2021, districts_count_2021, total_votes_2021, leading_party_2021, leading_party_seats_2021, leading_party_pct_2021"
+        )
+        .order("name"),
+      supabase
+        .from("commune_zones")
+        .select(
+          "id, commune_id, name, zone_type, our_offices_count, our_presence_pct, party_1_name, party_1_offices, party_2_name, party_2_offices, party_3_name, party_3_offices, notes, updated_at"
+        )
+        .order("name"),
+      supabase
+        .from("zone_cells")
+        .select("id, zone_id, cell_name, contact_name, contact_phone, established_date, notes")
+        .order("established_date", { ascending: false }),
+      supabase
+        .from("commune_localities")
+        .select("id, commune_id, locality_name, voter_count")
+        .order("voter_count", { ascending: false }),
+      getCoverageData(supabase),
+    ]);
 
   const communes = (communesRaw ?? []) as Commune[];
   const zones = (zonesRaw ?? []) as Zone[];
   const cells = (cellsRaw ?? []) as Cell[];
+  const localities = (localitiesRaw ?? []) as Locality[];
 
   const zonesByCommune = new Map<string, Zone[]>();
   for (const z of zones) {
@@ -101,6 +114,14 @@ export default async function PresencePage({
     list.push(cell);
     cellsByZone.set(cell.zone_id, list);
   }
+
+  const localitiesByCommune = new Map<string, Locality[]>();
+  for (const l of localities) {
+    const list = localitiesByCommune.get(l.commune_id) ?? [];
+    list.push(l);
+    localitiesByCommune.set(l.commune_id, list);
+  }
+  const totalLocalitiesVoters = localities.reduce((s, l) => s + (l.voter_count ?? 0), 0);
 
   const filteredCommunes = communes.filter((c) => typeFilter === "all" || c.type === typeFilter);
 
@@ -151,10 +172,20 @@ export default async function PresencePage({
             تغطية يوم الاقتراع (مراقبون) — {coverage.overall.coveredStations}/{coverage.overall.totalStations} مكتب
           </div>
         </div>
+        <div
+          className="rounded-xl border px-6 py-4 shadow-sm"
+          style={{ borderColor: "var(--border)", background: "var(--card)" }}
+        >
+          <div className="text-2xl font-extrabold text-[var(--heading)]">{localities.length.toLocaleString("ar")}</div>
+          <div className="text-sm font-bold text-[var(--muted)]">
+            حي/دوار حقيقي ({totalLocalitiesVoters.toLocaleString("ar")} ناخب مغطى)
+          </div>
+        </div>
         <div className="text-sm text-[var(--muted)] max-w-md self-center leading-relaxed">
-          لا توجد بيانات رسمية على مستوى الحي/الدوار (elections.ma تتوقف عند الجماعة) —
-          القائمة تُبنى يدويا من فريق الحملة الميدانية. نسبتا التغطية أعلاه محسوبتان
-          آليا وتتحدثان لحظيا مع كل خلية جديدة أو مراقب يتأكد.
+          "مناطق مُدخلة" و"مكاتبنا" أسفله بيانات تشغيلية يدوية من الفريق الميداني.
+          "الحي/الدوار الحقيقي" أرقام مستخرجة آليا من قاعدة الناخبين المستوردة —
+          مرجعية فقط (بلا تعديل)، وتغطي الجماعات القروية بشكل أفضل بكثير من
+          مدينة تطوان نفسها (بيانات الأحياء الحضرية فيها ناقصة عند المصدر).
         </div>
       </div>
 
@@ -212,6 +243,27 @@ export default async function PresencePage({
               </summary>
 
               <div className="px-5 pb-5 space-y-3 border-t border-[var(--border)] pt-4">
+                {(localitiesByCommune.get(c.id)?.length ?? 0) > 0 && (
+                  <details className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
+                    <summary className="cursor-pointer text-sm font-extrabold text-[var(--heading)]">
+                      الأحياء/الدواوير الحقيقية (بيانات مرجعية من قاعدة الناخبين) —{" "}
+                      {localitiesByCommune.get(c.id)?.length} حي/دوار
+                    </summary>
+                    <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
+                      {(localitiesByCommune.get(c.id) ?? []).map((l) => (
+                        <div
+                          key={l.id}
+                          className="flex items-center justify-between gap-2 text-sm rounded-lg bg-[var(--card)] border border-[var(--border)] px-3 py-2"
+                        >
+                          <span className="text-[var(--text)]">{l.locality_name}</span>
+                          <span className="font-extrabold text-[var(--heading)]">
+                            {l.voter_count.toLocaleString("ar")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
                 {communeZones.map((z) => (
                   <div key={z.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
                     <div className="flex items-center justify-between gap-3 flex-wrap mb-3">

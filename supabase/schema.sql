@@ -318,6 +318,33 @@ create materialized view if not exists public.voters_by_polling_station as
 grant select on public.voters_by_commune to authenticated, anon;
 grant select on public.voters_by_polling_station to authenticated, anon;
 
+-- ------------------------------------------------------------
+-- 10) أرقام حقيقية للأحياء/الدواوير من tetouan2026 (residenceNorm عبر
+--     Bridge API — راجع claude/AUDIT_TETOUAN2026_REFERENCE_APP.md
+--     وT-073). جدول مرجعي للقراءة فقط (بلا أي اسم/عنوان فردي، غير
+--     اسم الحي وعدد الناخبين) — منفصل عمدا عن commune_zones (اللي
+--     خاصة بالبيانات التشغيلية اليدوية: عدد مكاتبنا، الأحزاب المنافسة).
+--     قيد مهم موثق بصدق لعلي: residenceNorm مكتمل بنسبة عالية
+--     (60-90%) فأغلب الجماعات القروية، لكن ناقص بزاف فجماعة تطوان
+--     نفسها (7.9% فقط من 179,708 ناخب عندهم قيمة) — يعني تغطية
+--     الأحياء الحضرية لتطوان جزئية بطبيعتها، ماشي بق فالاستيراد.
+--     فلترة أعمالنا: احتفظنا فقط بالأحياء اللي فيها 5 ناخبين فما فوق
+--     (تفاديا لضجيج الأخطاء الإملائية/التكرارات الفريدة)، ودمجنا
+--     الأسماء المكررة بلاحقة اسم الجماعة (مثال: "حي النسيم تطوان"
+--     مع "حي النسيم"). التعبئة عبر supabase/import_localities.sql.
+-- ------------------------------------------------------------
+create table if not exists public.commune_localities (
+  id uuid primary key default gen_random_uuid(),
+  commune_id uuid not null references public.communes(id) on delete cascade,
+  locality_name text not null,
+  voter_count integer not null default 0,
+  source text not null default 'tetouan2026_residenceNorm',
+  created_at timestamptz not null default now(),
+  unique (commune_id, locality_name)
+);
+create index if not exists commune_localities_commune_idx on public.commune_localities (commune_id);
+create index if not exists commune_localities_count_idx on public.commune_localities (voter_count desc);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -407,4 +434,13 @@ create policy "authenticated read voters" on public.voters
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write voters" on public.voters;
 create policy "editors write voters" on public.voters
+  for all using (public.is_editor_or_admin());
+
+alter table public.commune_localities enable row level security;
+
+drop policy if exists "authenticated read commune_localities" on public.commune_localities;
+create policy "authenticated read commune_localities" on public.commune_localities
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write commune_localities" on public.commune_localities;
+create policy "editors write commune_localities" on public.commune_localities
   for all using (public.is_editor_or_admin());
