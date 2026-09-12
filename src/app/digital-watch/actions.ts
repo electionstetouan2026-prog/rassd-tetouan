@@ -15,6 +15,7 @@ export async function addDigitalWatchEntry(formData: FormData) {
   const attachment_url = String(formData.get("attachment_url") ?? "").trim() || null;
   const sentiment = String(formData.get("sentiment") ?? "محايد").trim() || "محايد";
   const priority = String(formData.get("priority") ?? "عادي").trim() || "عادي";
+  const commune_id = String(formData.get("commune_id") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
 
   const {
@@ -30,6 +31,7 @@ export async function addDigitalWatchEntry(formData: FormData) {
     attachment_url,
     sentiment,
     priority,
+    commune_id,
     notes,
     created_by: user?.id ?? null,
   });

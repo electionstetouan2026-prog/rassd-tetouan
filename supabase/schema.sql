@@ -181,6 +181,7 @@ create table if not exists public.digital_watch_entries (
   priority text not null default 'عادي' check (priority in ('عادي', 'مهم', 'عاجل')),
   status text not null default 'جديد'
     check (status in ('جديد', 'قيد المعالجة', 'تمت المعالجة', 'مؤرشف')),
+  commune_id uuid references public.communes(id) on delete set null,
   notes text,
   created_by uuid references public.profiles(id),
   created_at timestamptz not null default now(),
@@ -189,6 +190,22 @@ create table if not exists public.digital_watch_entries (
 create index if not exists digital_watch_date_idx on public.digital_watch_entries (entry_date);
 create index if not exists digital_watch_status_idx on public.digital_watch_entries (status);
 create index if not exists digital_watch_priority_idx on public.digital_watch_entries (priority);
+create index if not exists digital_watch_commune_idx on public.digital_watch_entries (commune_id);
+
+-- ترقية لقاعدة حية شغّلت `digital_watch_entries` من قبل (بلا عمود commune_id) —
+-- آمنة تتكرر (add column if not exists)، ماغتبدلش البيانات الموجودة.
+alter table public.digital_watch_entries
+  add column if not exists commune_id uuid references public.communes(id) on delete set null;
+create index if not exists digital_watch_commune_idx on public.digital_watch_entries (commune_id);
+
+-- ------------------------------------------------------------
+-- 6) محرك الترتيب التنافسي (T-062): بلا جدول أو دالة SQL خاصة بو —
+--    صفحة /ranking كتجمع حضور الأحياء (commune_zones) + اليقظة الرقمية
+--    (digital_watch_entries) على مستوى الجماعة مباشرة فكود التطبيق
+--    (Server Component)، وتُحسب حية فكل طلب بلا تخزين نتيجة. هذا أول
+--    إصدار قاعدي (rule-based)، بلا استدعاء AI خارجي — راجع الملاحظة
+--    التشغيلية المرفقة فـTASK_REGISTER.
+-- ------------------------------------------------------------
 
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())

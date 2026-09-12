@@ -72,6 +72,15 @@ export function IconEye({ className }: IconProps) {
   );
 }
 
+export function IconChart({ className }: IconProps) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 20V10M11 20V4M18 20v-7" />
+      <path d="M2.5 20h19" />
+    </svg>
+  );
+}
+
 export function IconMoon({ className }: IconProps) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

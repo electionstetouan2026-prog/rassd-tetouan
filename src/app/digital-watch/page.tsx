@@ -44,14 +44,18 @@ export default async function DigitalWatchPage({
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const { data: entriesRaw } = await supabase
-    .from("digital_watch_entries")
-    .select(
-      "id, entry_date, platform, source_name, content_summary, content_url, attachment_url, sentiment, priority, status, notes"
-    )
-    .order("entry_date", { ascending: false })
-    .order("created_at", { ascending: false });
+  const [{ data: communes }, { data: entriesRaw }] = await Promise.all([
+    supabase.from("communes").select("id, name").order("name"),
+    supabase
+      .from("digital_watch_entries")
+      .select(
+        "id, entry_date, platform, source_name, content_summary, content_url, attachment_url, sentiment, priority, status, notes, commune_id, communes(name)"
+      )
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false }),
+  ]);
 
+  const allCommunes = (communes ?? []) as { id: string; name: string }[];
   const entries = entriesRaw ?? [];
 
   const filteredEntries = entries.filter((e: any) => {
@@ -136,6 +140,18 @@ export default async function DigitalWatchPage({
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <select
+            name="commune_id"
+            defaultValue=""
+            className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
+          >
+            <option value="">— بلا جماعة محددة —</option>
+            {allCommunes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+          <select
             name="sentiment"
             defaultValue="محايد"
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
@@ -219,6 +235,7 @@ export default async function DigitalWatchPage({
                   {" · "}
                   {e.platform}
                   {e.source_name ? ` · ${e.source_name}` : ""}
+                  {e.communes?.name ? ` · ${e.communes.name}` : ""}
                 </div>
               </div>
               <div className="flex gap-1.5 shrink-0">

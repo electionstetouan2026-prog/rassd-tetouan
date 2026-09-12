@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconLogout } from "./icons";
+import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconLogout } from "./icons";
 
 const NAV_ITEMS = [
   { href: "/", label: "لوحة القيادة", Icon: IconDashboard },
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/presence", label: "خريطة الحضور", Icon: IconMap },
   { href: "/field-tasks", label: "البرنامج الميداني", Icon: IconTasks },
   { href: "/digital-watch", label: "اليقظة الرقمية", Icon: IconEye },
+  { href: "/ranking", label: "الترتيب التنافسي", Icon: IconChart },
 ];
 
 export default function Sidebar() {
