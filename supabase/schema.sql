@@ -199,13 +199,19 @@ alter table public.digital_watch_entries
 create index if not exists digital_watch_commune_idx on public.digital_watch_entries (commune_id);
 
 -- ------------------------------------------------------------
--- 6) محرك الترتيب التنافسي (T-062): بلا جدول أو دالة SQL خاصة بو —
---    صفحة /ranking كتجمع حضور الأحياء (commune_zones) + اليقظة الرقمية
---    (digital_watch_entries) على مستوى الجماعة مباشرة فكود التطبيق
---    (Server Component)، وتُحسب حية فكل طلب بلا تخزين نتيجة. هذا أول
---    إصدار قاعدي (rule-based)، بلا استدعاء AI خارجي — راجع الملاحظة
---    التشغيلية المرفقة فـTASK_REGISTER.
+-- 6) محرك الترتيب التنافسي (T-062): الأرقام (حضور الأحياء + اليقظة
+--    الرقمية) كتُجمّع حية فكود التطبيق (src/lib/ranking.ts)، بلا حفظ.
+--    الجدول أسفله يخزّن غير الملخص النصي المولّد بالـAI (Gemini،
+--    توليد يدوي بضغطة زر من محرر/أدمين، مرة وحدة كحد أقصى فاليوم —
+--    unique(summary_date) كيمنع التكرار ويخلي الاستهلاك ضعيف جدا).
 -- ------------------------------------------------------------
+create table if not exists public.ranking_ai_summaries (
+  id uuid primary key default gen_random_uuid(),
+  summary_date date not null unique,
+  summary_text text not null,
+  model text,
+  created_at timestamptz not null default now()
+);
 
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
@@ -260,4 +266,13 @@ create policy "authenticated read digital_watch_entries" on public.digital_watch
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write digital_watch_entries" on public.digital_watch_entries;
 create policy "editors write digital_watch_entries" on public.digital_watch_entries
+  for all using (public.is_editor_or_admin());
+
+alter table public.ranking_ai_summaries enable row level security;
+
+drop policy if exists "authenticated read ranking_ai_summaries" on public.ranking_ai_summaries;
+create policy "authenticated read ranking_ai_summaries" on public.ranking_ai_summaries
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write ranking_ai_summaries" on public.ranking_ai_summaries;
+create policy "editors write ranking_ai_summaries" on public.ranking_ai_summaries
   for all using (public.is_editor_or_admin());
