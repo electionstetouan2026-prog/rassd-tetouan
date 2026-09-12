@@ -237,6 +237,38 @@ create table if not exists public.zone_cells (
 );
 create index if not exists zone_cells_zone_idx on public.zone_cells (zone_id);
 
+-- ------------------------------------------------------------
+-- 8) تقارير لجنة المراقبة (المرحلة 3 من خطة التطبيق المرجعي — تقارير
+--    يوم الاقتراع: سير عادي/مخالفة/حادث/ملاحظة عامة). تُسجَّل من طرف
+--    عضو اللجنة المركزية أو مراقب ميداني (observer_id اختياري — بعض
+--    التقارير كتجي من غير مراقب مسجل رسميا، فـreporter_name نص حر
+--    كبديل). reviewed_by/review_notes خاصين باللجنة المركزية بعد
+--    المراجعة، ماشي وقت التسجيل الأول.
+-- ------------------------------------------------------------
+create table if not exists public.monitoring_reports (
+  id uuid primary key default gen_random_uuid(),
+  polling_station_id uuid references public.polling_stations(id) on delete set null,
+  commune_id uuid references public.communes(id) on delete set null,
+  observer_id uuid references public.observers(id) on delete set null,
+  reporter_name text,
+  report_type text not null default 'ملاحظة عامة'
+    check (report_type in ('سير عادي', 'مخالفة', 'حادث', 'ملاحظة عامة')),
+  severity text not null default 'عادي' check (severity in ('عادي', 'متوسط', 'خطير')),
+  title text not null,
+  description text,
+  status text not null default 'جديد' check (status in ('جديد', 'قيد المراجعة', 'تمت المعالجة', 'مؤرشف')),
+  reviewed_by uuid references public.profiles(id),
+  review_notes text,
+  reported_at timestamptz not null default now(),
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create index if not exists monitoring_reports_station_idx on public.monitoring_reports (polling_station_id);
+create index if not exists monitoring_reports_commune_idx on public.monitoring_reports (commune_id);
+create index if not exists monitoring_reports_status_idx on public.monitoring_reports (status);
+create index if not exists monitoring_reports_severity_idx on public.monitoring_reports (severity);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -308,4 +340,13 @@ create policy "authenticated read zone_cells" on public.zone_cells
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write zone_cells" on public.zone_cells;
 create policy "editors write zone_cells" on public.zone_cells
+  for all using (public.is_editor_or_admin());
+
+alter table public.monitoring_reports enable row level security;
+
+drop policy if exists "authenticated read monitoring_reports" on public.monitoring_reports;
+create policy "authenticated read monitoring_reports" on public.monitoring_reports
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write monitoring_reports" on public.monitoring_reports;
+create policy "editors write monitoring_reports" on public.monitoring_reports
   for all using (public.is_editor_or_admin());
