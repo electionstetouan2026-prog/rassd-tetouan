@@ -42,6 +42,7 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={`flex items-center gap-3 rounded-xl px-3.5 py-3 text-[15px] font-bold transition ${
                   active ? "bg-[var(--brand-blue)] text-white shadow-lg shadow-black/20" : "text-white/70 hover:bg-white/10"
                 }`}
