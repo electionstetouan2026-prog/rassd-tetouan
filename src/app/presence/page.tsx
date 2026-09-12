@@ -1,6 +1,7 @@
 import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
-import { addZone, deleteZone, updateZone } from "./actions";
+import { addZone, deleteZone, updateZone, addCell, deleteCell } from "./actions";
+import { getCoverageData } from "@/lib/coverage";
 import { IconMap } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
@@ -38,6 +39,16 @@ type Zone = {
   updated_at: string;
 };
 
+type Cell = {
+  id: string;
+  zone_id: string;
+  cell_name: string | null;
+  contact_name: string | null;
+  contact_phone: string | null;
+  established_date: string;
+  notes: string | null;
+};
+
 function pct(n: number | null) {
   if (n === null || n === undefined) return "—";
   return `${Math.round(n * 1000) / 10}%`;
@@ -53,7 +64,7 @@ export default async function PresencePage({
 
   const supabase = await createClient();
 
-  const [{ data: communesRaw }, { data: zonesRaw }] = await Promise.all([
+  const [{ data: communesRaw }, { data: zonesRaw }, { data: cellsRaw }, coverage] = await Promise.all([
     supabase
       .from("communes")
       .select(
@@ -66,16 +77,29 @@ export default async function PresencePage({
         "id, commune_id, name, zone_type, our_offices_count, our_presence_pct, party_1_name, party_1_offices, party_2_name, party_2_offices, party_3_name, party_3_offices, notes, updated_at"
       )
       .order("name"),
+    supabase
+      .from("zone_cells")
+      .select("id, zone_id, cell_name, contact_name, contact_phone, established_date, notes")
+      .order("established_date", { ascending: false }),
+    getCoverageData(supabase),
   ]);
 
   const communes = (communesRaw ?? []) as Commune[];
   const zones = (zonesRaw ?? []) as Zone[];
+  const cells = (cellsRaw ?? []) as Cell[];
 
   const zonesByCommune = new Map<string, Zone[]>();
   for (const z of zones) {
     const list = zonesByCommune.get(z.commune_id) ?? [];
     list.push(z);
     zonesByCommune.set(z.commune_id, list);
+  }
+
+  const cellsByZone = new Map<string, Cell[]>();
+  for (const cell of cells) {
+    const list = cellsByZone.get(cell.zone_id) ?? [];
+    list.push(cell);
+    cellsByZone.set(cell.zone_id, list);
   }
 
   const filteredCommunes = communes.filter((c) => typeFilter === "all" || c.type === typeFilter);
@@ -105,9 +129,32 @@ export default async function PresencePage({
           <div className="text-2xl font-extrabold text-[var(--heading)]">{totalOurOffices}</div>
           <div className="text-sm font-bold text-[var(--muted)]">إجمالي مكاتبنا المصرح بها</div>
         </div>
+        <div
+          className="rounded-xl border px-6 py-4 shadow-sm"
+          style={{ borderColor: "var(--brand-blue)", background: "var(--card)" }}
+        >
+          <div className="text-2xl font-extrabold" style={{ color: "var(--brand-blue)" }}>
+            {pct(coverage.overall.fieldCoveragePct)}
+          </div>
+          <div className="text-sm font-bold text-[var(--muted)]">
+            التغطية الميدانية (خلايا) — {coverage.overall.zonesWithCells}/{coverage.overall.totalZones} منطقة
+          </div>
+        </div>
+        <div
+          className="rounded-xl border px-6 py-4 shadow-sm"
+          style={{ borderColor: "var(--severity-neutral)", background: "var(--card)" }}
+        >
+          <div className="text-2xl font-extrabold" style={{ color: "var(--severity-neutral)" }}>
+            {pct(coverage.overall.electionDayCoveragePct)}
+          </div>
+          <div className="text-sm font-bold text-[var(--muted)]">
+            تغطية يوم الاقتراع (مراقبون) — {coverage.overall.coveredStations}/{coverage.overall.totalStations} مكتب
+          </div>
+        </div>
         <div className="text-sm text-[var(--muted)] max-w-md self-center leading-relaxed">
           لا توجد بيانات رسمية على مستوى الحي/الدوار (elections.ma تتوقف عند الجماعة) —
-          القائمة تُبنى يدويا من فريق الحملة الميدانية.
+          القائمة تُبنى يدويا من فريق الحملة الميدانية. نسبتا التغطية أعلاه محسوبتان
+          آليا وتتحدثان لحظيا مع كل خلية جديدة أو مراقب يتأكد.
         </div>
       </div>
 
@@ -132,6 +179,7 @@ export default async function PresencePage({
         {filteredCommunes.map((c) => {
           const communeZones = zonesByCommune.get(c.id) ?? [];
           const communeOffices = communeZones.reduce((s, z) => s + (z.our_offices_count ?? 0), 0);
+          const communeCoverage = coverage.byCommune.get(c.id);
           return (
             <details key={c.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
               <summary className="cursor-pointer flex items-center justify-between flex-wrap gap-3 p-5 list-none">
@@ -143,6 +191,16 @@ export default async function PresencePage({
                   <span className="text-sm text-[var(--muted)]">
                     {communeZones.length} منطقة · {communeOffices} مكتب لينا
                   </span>
+                  {communeCoverage && (
+                    <span className="text-xs font-bold rounded-full px-2.5 py-1" style={{ background: "var(--bg)", color: "var(--brand-blue)" }}>
+                      تغطية ميدانية {pct(communeCoverage.fieldCoveragePct)}
+                    </span>
+                  )}
+                  {communeCoverage && (
+                    <span className="text-xs font-bold rounded-full px-2.5 py-1" style={{ background: "var(--bg)", color: "var(--severity-neutral)" }}>
+                      تغطية الاقتراع {pct(communeCoverage.electionDayCoveragePct)}
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm text-[var(--muted)] flex gap-4 flex-wrap">
                   <span>مشاركة 2021: <b className="text-[var(--text)]">{pct(c.participation_rate_2021)}</b></span>
@@ -223,6 +281,83 @@ export default async function PresencePage({
                         حفظ التحديث
                       </button>
                     </form>
+
+                    <div className="mt-4 pt-3 border-t border-[var(--border)]">
+                      <div className="flex items-center gap-2 mb-2">
+                        {(cellsByZone.get(z.id)?.length ?? 0) > 0 ? (
+                          <span
+                            className="text-xs font-bold rounded-full px-2.5 py-1"
+                            style={{ background: "var(--severity-neutral)", color: "white" }}
+                          >
+                            🟢 عدد الخلايا: {cellsByZone.get(z.id)?.length}
+                          </span>
+                        ) : (
+                          <span
+                            className="text-xs font-bold rounded-full px-2.5 py-1"
+                            style={{ background: "var(--severity-high)", color: "white" }}
+                          >
+                            🔴 بلا خلية بعد
+                          </span>
+                        )}
+                      </div>
+
+                      {(cellsByZone.get(z.id) ?? []).map((cell) => (
+                        <div
+                          key={cell.id}
+                          className="flex items-center justify-between gap-2 text-sm rounded-lg bg-[var(--card)] border border-[var(--border)] px-3 py-2 mb-1.5"
+                        >
+                          <div>
+                            <b className="text-[var(--text)]">{cell.cell_name ?? "خلية بلا اسم"}</b>
+                            {cell.contact_name && <span className="text-[var(--muted)]"> · {cell.contact_name}</span>}
+                            {cell.contact_phone && <span className="text-[var(--muted)]"> · {cell.contact_phone}</span>}
+                            <span className="text-[var(--muted)]"> · منذ {cell.established_date}</span>
+                            {cell.notes && <div className="text-[var(--muted)] text-xs mt-0.5">{cell.notes}</div>}
+                          </div>
+                          <form action={deleteCell.bind(null, cell.id)}>
+                            <button
+                              className="text-xs font-bold rounded-full px-2.5 py-1 shrink-0"
+                              style={{ background: "var(--severity-high)", color: "white" }}
+                            >
+                              حذف
+                            </button>
+                          </form>
+                        </div>
+                      ))}
+
+                      <details className="mt-2">
+                        <summary className="cursor-pointer text-sm font-bold text-[var(--brand-blue)]">
+                          + إضافة خلية جديدة
+                        </summary>
+                        <form
+                          action={addCell.bind(null, z.id)}
+                          className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-2"
+                        >
+                          <input
+                            name="cell_name"
+                            placeholder="اسم/رقم الخلية"
+                            className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                          />
+                          <input
+                            name="contact_name"
+                            placeholder="المسؤول عنها"
+                            className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                          />
+                          <input
+                            name="contact_phone"
+                            placeholder="هاتف المسؤول"
+                            className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                          />
+                          <input
+                            name="notes"
+                            placeholder="ملاحظة (اختياري)"
+                            className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                          />
+                          <button className="col-span-2 md:col-span-4 rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-2 text-sm">
+                            إضافة الخلية
+                          </button>
+                        </form>
+                      </details>
+                    </div>
                   </div>
                 ))}
                 {communeZones.length === 0 && (

@@ -74,3 +74,31 @@ export async function deleteZone(id: string) {
   await supabase.from("commune_zones").delete().eq("id", id);
   revalidatePath("/presence");
 }
+
+// ------------------------------------------------------------
+// خلايا الأحياء (Level 1 من نسبة التغطية — راجع src/lib/coverage.ts)
+// ------------------------------------------------------------
+export async function addCell(zoneId: string, formData: FormData) {
+  "use server";
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  await supabase.from("zone_cells").insert({
+    zone_id: zoneId,
+    cell_name: strOrNull(formData.get("cell_name")),
+    contact_name: strOrNull(formData.get("contact_name")),
+    contact_phone: strOrNull(formData.get("contact_phone")),
+    notes: strOrNull(formData.get("notes")),
+    created_by: user?.id ?? null,
+  });
+  revalidatePath("/presence");
+}
+
+export async function deleteCell(id: string) {
+  "use server";
+  const supabase = await createClient();
+  await supabase.from("zone_cells").delete().eq("id", id);
+  revalidatePath("/presence");
+}

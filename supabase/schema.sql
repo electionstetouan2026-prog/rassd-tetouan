@@ -213,6 +213,30 @@ create table if not exists public.ranking_ai_summaries (
   created_at timestamptz not null default now()
 );
 
+-- ------------------------------------------------------------
+-- 7) خلايا الأحياء/الدواوير (طلب علي، 12 شتنبر 2026 — مستوحى من التطبيق
+--    المرجعي المحلي tetouan2026). كل "خلية" = وحدة تنظيمية قائمة فعليا
+--    فحي/دوار معين (فريق/جهة اتصال مسؤولة)، تُدخل يدويا فريق-بفريق.
+--    "نسبة التغطية الميدانية" (Level 1) تُحسب آليا فكود التطبيق
+--    (src/lib/coverage.ts)، بلا حفظ فالقاعدة: (عدد المناطق فيها خلية
+--    واحدة على الأقل) ÷ (عدد المناطق الكلي). تتحدث لحظيا مع كل خلية
+--    جديدة — ماشي رقم يدوي كيفما our_presence_pct القديم.
+--    "نسبة تغطية يوم الاقتراع" (Level 2) موجودة من قبل (observers/
+--    polling_stations)، هذا الجدول ما عندوش علاقة بيها.
+-- ------------------------------------------------------------
+create table if not exists public.zone_cells (
+  id uuid primary key default gen_random_uuid(),
+  zone_id uuid not null references public.commune_zones(id) on delete cascade,
+  cell_name text,
+  contact_name text,
+  contact_phone text,
+  established_date date not null default current_date,
+  notes text,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now()
+);
+create index if not exists zone_cells_zone_idx on public.zone_cells (zone_id);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -275,4 +299,13 @@ create policy "authenticated read ranking_ai_summaries" on public.ranking_ai_sum
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write ranking_ai_summaries" on public.ranking_ai_summaries;
 create policy "editors write ranking_ai_summaries" on public.ranking_ai_summaries
+  for all using (public.is_editor_or_admin());
+
+alter table public.zone_cells enable row level security;
+
+drop policy if exists "authenticated read zone_cells" on public.zone_cells;
+create policy "authenticated read zone_cells" on public.zone_cells
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write zone_cells" on public.zone_cells;
+create policy "editors write zone_cells" on public.zone_cells
   for all using (public.is_editor_or_admin());
