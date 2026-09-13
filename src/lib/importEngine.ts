@@ -3,7 +3,7 @@ import type { createClient } from "@/lib/supabase/server";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
-export type ImportTargetKey = "volunteers" | "activists" | "party_officials";
+export type ImportTargetKey = "volunteers" | "activists" | "party_officials" | "observers";
 
 type FieldSpec = {
   key: string;
@@ -18,6 +18,9 @@ export type ImportTargetConfig = {
   redirectPath: string;
   fields: FieldSpec[];
   hasCommune: boolean;
+  // حقول تُستعمل فقط للمطابقة (مثلا إيجاد مكتب تصويت) وما كتنكتبش
+  // مباشرة كعمود فالجدول المستهدف
+  virtualFields?: string[];
 };
 
 export const IMPORT_TARGETS: Record<ImportTargetKey, ImportTargetConfig> = {
@@ -65,6 +68,25 @@ export const IMPORT_TARGETS: Record<ImportTargetKey, ImportTargetConfig> = {
       { key: "role", headers: ["الصفة", "الدور"] },
       { key: "commune_name", headers: ["الجماعة"] },
       { key: "category", headers: ["الفئة"] },
+      { key: "notes", headers: ["ملاحظات"] },
+    ],
+  },
+  observers: {
+    key: "observers",
+    table: "observers",
+    label: "المراقبون",
+    redirectPath: "/observers",
+    hasCommune: true,
+    // "الجماعة" و"رقم المكتب"/"اسم المركز" ما كيتكتبوش كأعمدة فجدول
+    // observers مباشرة — كيتستعملو غير باش يتلقى مكتب التصويت المطابق
+    // (الجدول فيه غير polling_station_id)
+    virtualFields: ["commune_name", "station_number", "station_name"],
+    fields: [
+      { key: "full_name", headers: ["الاسم الكامل", "الاسم"], required: true },
+      { key: "phone", headers: ["الهاتف"] },
+      { key: "commune_name", headers: ["الجماعة"] },
+      { key: "station_number", headers: ["رقم المكتب", "رقم مكتب التصويت"] },
+      { key: "station_name", headers: ["اسم المركز", "المركز"] },
       { key: "notes", headers: ["ملاحظات"] },
     ],
   },
@@ -142,6 +164,25 @@ export async function runSpreadsheetImport(
     communesByName = new Map((communesRaw ?? []).map((c) => [normalizeHeader(c.name as string), c.id as string]));
   }
 
+  // مطابقة مكتب التصويت (خاصة بـ observers فقط — الجدول ماعندوش عمود
+  // commune_id مباشر، غير polling_station_id)
+  const stationsByCommuneAndNumber = new Map<string, string>();
+  const stationsByCommuneAndName = new Map<string, string>();
+  if (targetKey === "observers") {
+    const { data: stationsRaw } = await supabase
+      .from("polling_stations")
+      .select("id, commune_id, center_name, sub_office_number");
+    for (const s of stationsRaw ?? []) {
+      const communeId = s.commune_id as string;
+      if (s.sub_office_number != null) {
+        stationsByCommuneAndNumber.set(`${communeId}|${s.sub_office_number}`, s.id as string);
+      }
+      if (s.center_name) {
+        stationsByCommuneAndName.set(`${communeId}|${normalizeHeader(s.center_name as string).toLowerCase()}`, s.id as string);
+      }
+    }
+  }
+
   const toInsert: Record<string, unknown>[] = [];
   const skipped: string[] = [];
   const communeWarnings: string[] = [];
@@ -153,6 +194,7 @@ export async function runSpreadsheetImport(
 
     for (const field of config.fields) {
       if (field.key === "commune_name") continue; // يُعالج بعده
+      if (config.virtualFields?.includes(field.key)) continue; // مطابقة فقط، ماشي عمود
       const value = findValue(row, field.headers);
       if (field.required && !value) {
         missingRequired = true;
@@ -165,15 +207,18 @@ export async function runSpreadsheetImport(
       return;
     }
 
+    let communeId: string | undefined;
     if (config.hasCommune) {
       const communeField = config.fields.find((f) => f.key === "commune_name");
       const communeName = communeField ? findValue(row, communeField.headers) : "";
       if (communeName) {
-        const id = communesByName.get(normalizeHeader(communeName));
-        if (id) {
-          record.commune_id = id;
-        } else {
-          communeWarnings.push(`صف ${rowNum}: الجماعة "${communeName}" غير معروفة — تم الاستيراد بلا ربط جماعة`);
+        communeId = communesByName.get(normalizeHeader(communeName));
+        if (!communeId) {
+          communeWarnings.push(
+            targetKey === "observers"
+              ? `صف ${rowNum}: الجماعة "${communeName}" غير معروفة — تعذّر البحث عن مكتب تصويت`
+              : `صف ${rowNum}: الجماعة "${communeName}" غير معروفة — تم الاستيراد بلا ربط جماعة`
+          );
         }
       }
     }
@@ -183,6 +228,32 @@ export async function runSpreadsheetImport(
       if (category !== "حالي" && category !== "تاريخي") {
         record.category = "حالي";
       }
+    }
+
+    if (targetKey === "observers") {
+      // observers ماعندهاش عمود commune_id — الجماعة كتُستعمل غير
+      // لإيجاد مكتب التصويت المطابق
+      const stationNumberRaw = findValue(row, ["رقم المكتب", "رقم مكتب التصويت"]);
+      const stationNameRaw = findValue(row, ["اسم المركز", "المركز"]);
+      let stationId: string | undefined;
+      if (communeId && stationNumberRaw) {
+        const num = parseInt(stationNumberRaw, 10);
+        if (!Number.isNaN(num)) stationId = stationsByCommuneAndNumber.get(`${communeId}|${num}`);
+      }
+      if (!stationId && communeId && stationNameRaw) {
+        stationId = stationsByCommuneAndName.get(`${communeId}|${normalizeHeader(stationNameRaw).toLowerCase()}`);
+      }
+      if (stationId) {
+        record.polling_station_id = stationId;
+        record.confirmation_status = "غير مؤكد";
+      } else {
+        record.confirmation_status = "لم يُعيّن";
+        if (stationNumberRaw || stationNameRaw) {
+          communeWarnings.push(`صف ${rowNum}: تعذّر إيجاد مكتب التصويت المطابق — تم الاستيراد بلا ربط مكتب`);
+        }
+      }
+    } else if (config.hasCommune && communeId) {
+      record.commune_id = communeId;
     }
 
     toInsert.push(record);

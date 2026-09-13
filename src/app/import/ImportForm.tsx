@@ -8,6 +8,7 @@ const TARGET_OPTIONS: { value: ImportTargetKey; label: string }[] = [
   { value: "volunteers", label: "المتطوعون" },
   { value: "activists", label: "المناضلون" },
   { value: "party_officials", label: "مسؤولو/مرشحو الحزب" },
+  { value: "observers", label: "المراقبون" },
 ];
 
 export default function ImportForm() {
