@@ -61,6 +61,27 @@ function pct(n: number | null) {
   return `${Math.round(n * 1000) / 10}%`;
 }
 
+// commune_localities قد يفوق 1000 سطر، وإعداد db-max-rows الافتراضي فـ Supabase
+// يحد كل طلب بـ1000 سطر بغض النظر عن .limit() فالكود. نجيبو البيانات دفعات
+// دفعات (0-999، 1000-1999، ...) باش نضمنو رجوع كل الصفوف مهما كان العدد.
+async function fetchAllLocalities(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const pageSize = 1000;
+  const all: any[] = [];
+  let from = 0;
+  for (;;) {
+    const { data, error } = await supabase
+      .from("commune_localities")
+      .select("id, commune_id, locality_name, voter_count")
+      .order("voter_count", { ascending: false })
+      .range(from, from + pageSize - 1);
+    if (error || !data) break;
+    all.push(...data);
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return all;
+}
+
 export default async function PresencePage({
   searchParams,
 }: {
@@ -71,7 +92,7 @@ export default async function PresencePage({
 
   const supabase = await createClient();
 
-  const [{ data: communesRaw }, { data: zonesRaw }, { data: cellsRaw }, { data: localitiesRaw }, coverage] =
+  const [{ data: communesRaw }, { data: zonesRaw }, { data: cellsRaw }, localitiesRaw, coverage] =
     await Promise.all([
       supabase
         .from("communes")
@@ -89,10 +110,7 @@ export default async function PresencePage({
         .from("zone_cells")
         .select("id, zone_id, cell_name, contact_name, contact_phone, established_date, notes")
         .order("established_date", { ascending: false }),
-      supabase
-        .from("commune_localities")
-        .select("id, commune_id, locality_name, voter_count")
-        .order("voter_count", { ascending: false }),
+      fetchAllLocalities(supabase),
       getCoverageData(supabase),
     ]);
 
