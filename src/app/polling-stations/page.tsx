@@ -1,0 +1,225 @@
+import PageShell from "@/components/PageShell";
+import { createClient } from "@/lib/supabase/server";
+import { updatePollingStationLocation } from "./actions";
+import { IconBuilding } from "@/components/icons";
+
+export const dynamic = "force-dynamic";
+
+const LOCATION_TABS = ["مؤكد", "يحتاج تأكيد", "غير محدد"];
+const LOCATION_COLOR: Record<string, string> = {
+  "مؤكد": "var(--severity-neutral)",
+  "يحتاج تأكيد": "var(--severity-medium)",
+  "غير محدد": "#9ca3af",
+};
+
+type Station = {
+  id: string;
+  commune_id: string;
+  center_name: string;
+  sub_office_number: number | null;
+  approx_zone: string | null;
+  coordinates: string | null;
+  map_link: string | null;
+  location_confirmed: string;
+};
+
+export default async function PollingStationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ commune?: string; location?: string }>;
+}) {
+  const params = await searchParams;
+  const communeFilter = params.commune ?? "all";
+  const locationFilter = params.location ?? "all";
+
+  const supabase = await createClient();
+
+  const [{ data: communesRaw }, { data: stationsRaw }, { data: voterCountsRaw }, { data: observersRaw }] =
+    await Promise.all([
+      supabase.from("communes").select("id, name, type").order("name"),
+      supabase
+        .from("polling_stations")
+        .select("id, commune_id, center_name, sub_office_number, approx_zone, coordinates, map_link, location_confirmed")
+        .eq("is_mock", false)
+        .order("sub_office_number"),
+      supabase.from("voters_by_polling_station").select("polling_station_id, voter_count"),
+      supabase.from("observers").select("polling_station_id, confirmation_status"),
+    ]);
+
+  const communes = communesRaw ?? [];
+  const stations = (stationsRaw ?? []) as Station[];
+  const voterCounts = new Map((voterCountsRaw ?? []).map((r) => [r.polling_station_id as string, r.voter_count as number]));
+  const confirmedObserverStations = new Set(
+    (observersRaw ?? [])
+      .filter((o) => o.confirmation_status === "مؤكد" && o.polling_station_id)
+      .map((o) => o.polling_station_id as string)
+  );
+
+  const stationsByCommune = new Map<string, Station[]>();
+  for (const s of stations) {
+    const list = stationsByCommune.get(s.commune_id) ?? [];
+    list.push(s);
+    stationsByCommune.set(s.commune_id, list);
+  }
+
+  const locationCounts: Record<string, number> = { all: stations.length };
+  for (const t of LOCATION_TABS) locationCounts[t] = 0;
+  for (const s of stations) locationCounts[s.location_confirmed] = (locationCounts[s.location_confirmed] ?? 0) + 1;
+
+  const filteredCommunes = communes.filter((c) => communeFilter === "all" || c.id === communeFilter);
+
+  return (
+    <PageShell
+      title="مكاتب التصويت"
+      subtitle="تصفح كل مكاتب التصويت الحقيقية (594 مكتب، 22 جماعة) — تأكيد الموقع، الإحداثيات، ورابط الخريطة لكل مكتب"
+      icon={<IconBuilding />}
+    >
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 flex items-center gap-6 flex-wrap shadow-sm">
+        <div>
+          <div className="text-sm font-bold text-[var(--muted)]">إجمالي المكاتب</div>
+          <div className="text-[28px] font-extrabold text-[var(--heading)]">{stations.length.toLocaleString("ar")}</div>
+        </div>
+        <div>
+          <div className="text-sm font-bold text-[var(--muted)]">مواقع مؤكدة</div>
+          <div className="text-[28px] font-extrabold" style={{ color: "var(--severity-neutral)" }}>
+            {locationCounts["مؤكد"] ?? 0}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap mb-3">
+        {["all", ...LOCATION_TABS].map((t) => (
+          <a
+            key={t}
+            href={`/polling-stations?commune=${communeFilter}&location=${t}`}
+            className={`text-sm rounded-full px-4 py-2 border font-bold shadow-sm ${
+              locationFilter === t
+                ? "bg-[var(--brand-blue)] text-white border-[var(--brand-blue)]"
+                : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
+            }`}
+          >
+            {t === "all" ? "الكل" : t} ({locationCounts[t] ?? 0})
+          </a>
+        ))}
+      </div>
+      <div className="flex gap-2 flex-wrap mb-6">
+        <a
+          href={`/polling-stations?commune=all&location=${locationFilter}`}
+          className={`text-sm rounded-full px-3.5 py-1.5 border font-semibold ${
+            communeFilter === "all"
+              ? "bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]"
+              : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
+          }`}
+        >
+          كل الجماعات
+        </a>
+        {communes.map((c) => (
+          <a
+            key={c.id}
+            href={`/polling-stations?commune=${c.id}&location=${locationFilter}`}
+            className={`text-sm rounded-full px-3.5 py-1.5 border font-semibold ${
+              communeFilter === c.id
+                ? "bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]"
+                : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
+            }`}
+          >
+            {c.name}
+          </a>
+        ))}
+      </div>
+
+      <div className="space-y-4">
+        {filteredCommunes.map((c) => {
+          const communeStations = (stationsByCommune.get(c.id) ?? []).filter(
+            (s) => locationFilter === "all" || s.location_confirmed === locationFilter
+          );
+          if (communeStations.length === 0) return null;
+          return (
+            <details key={c.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
+              <summary className="cursor-pointer flex items-center justify-between flex-wrap gap-3 p-5 list-none">
+                <span className="font-extrabold text-[17px] text-[var(--heading)]">{c.name}</span>
+                <span className="text-sm text-[var(--muted)]">{communeStations.length} مكتب</span>
+              </summary>
+              <div className="px-5 pb-5 space-y-2 border-t border-[var(--border)] pt-4">
+                {communeStations.map((s) => (
+                  <details key={s.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+                    <summary className="cursor-pointer flex items-center justify-between gap-3 p-3.5 list-none">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        <span className="font-bold text-[var(--text)]">
+                          {s.sub_office_number ? `مكتب ${s.sub_office_number} — ` : ""}
+                          {s.center_name}
+                        </span>
+                        {s.approx_zone && <span className="text-sm text-[var(--muted)]">({s.approx_zone})</span>}
+                        <span className="text-sm text-[var(--muted)]">
+                          {(voterCounts.get(s.id) ?? 0).toLocaleString("ar")} ناخب
+                        </span>
+                        {confirmedObserverStations.has(s.id) && (
+                          <span
+                            className="text-xs font-extrabold rounded-full px-2.5 py-1 text-white"
+                            style={{ background: "var(--severity-neutral)" }}
+                          >
+                            مراقب مؤكد
+                          </span>
+                        )}
+                      </div>
+                      <span
+                        className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
+                        style={{ background: LOCATION_COLOR[s.location_confirmed] ?? "#9ca3af" }}
+                      >
+                        {s.location_confirmed}
+                      </span>
+                    </summary>
+                    <form
+                      action={updatePollingStationLocation.bind(null, s.id)}
+                      className="px-3.5 pb-3.5 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm"
+                    >
+                      <input
+                        name="approx_zone"
+                        defaultValue={s.approx_zone ?? ""}
+                        placeholder="المنطقة التقريبية"
+                        className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                      />
+                      <input
+                        name="coordinates"
+                        defaultValue={s.coordinates ?? ""}
+                        placeholder="الإحداثيات (خط عرض، خط طول)"
+                        className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                      />
+                      <input
+                        name="map_link"
+                        defaultValue={s.map_link ?? ""}
+                        placeholder="رابط خريطة (اختياري)"
+                        className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                      />
+                      <select
+                        name="location_confirmed"
+                        defaultValue={s.location_confirmed}
+                        className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
+                      >
+                        {LOCATION_TABS.map((t) => (
+                          <option key={t} value={t}>
+                            {t}
+                          </option>
+                        ))}
+                      </select>
+                      <button className="col-span-2 md:col-span-4 rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-2 text-sm">
+                        حفظ
+                      </button>
+                    </form>
+                    {s.map_link && (
+                      <div className="px-3.5 pb-3.5">
+                        <a href={s.map_link} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--brand-blue)] font-bold underline">
+                          فتح الخريطة ↗
+                        </a>
+                      </div>
+                    )}
+                  </details>
+                ))}
+              </div>
+            </details>
+          );
+        })}
+      </div>
+    </PageShell>
+  );
+}

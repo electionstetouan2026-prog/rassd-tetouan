@@ -127,6 +127,17 @@ export function IconIdBadge({ className }: IconProps) {
   );
 }
 
+export function IconBuilding({ className }: IconProps) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="3" width="12" height="18" rx="1" />
+      <path d="M16 9.5 20 11v10h-4" />
+      <path d="M7.5 7h1M11 7h1M7.5 11h1M11 11h1M7.5 15h1M11 15h1" />
+      <path d="M8.5 21v-3.5h3V21" />
+    </svg>
+  );
+}
+
 export function IconMoon({ className }: IconProps) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
