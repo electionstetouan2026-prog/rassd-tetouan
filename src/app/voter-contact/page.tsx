@@ -5,11 +5,13 @@ import {
   getCommuneContactSummary,
   getStationContactSummary,
   getStationVoters,
+  getFieldTeam,
   statusMeta,
   STATUS_OPTIONS,
   VOTER_CONTACT_PAGE_SIZE,
 } from "@/lib/voterContact";
 import { setVoterContactStatus } from "./actions";
+import { addVolunteer } from "@/app/volunteers/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -31,6 +33,7 @@ export default async function VoterContactPage({
     const statusFilter = params.status ?? "all";
     const page = Math.max(1, Number(params.page ?? "1") || 1);
     const { rows: voters, total } = await getStationVoters(supabase, params.station, statusFilter, page);
+    const fieldTeam = await getFieldTeam(supabase, params.commune);
     const totalPages = Math.max(1, Math.ceil(total / VOTER_CONTACT_PAGE_SIZE));
     const baseUrl = `/voter-contact?commune=${params.commune}&station=${params.station}`;
     const redirectTo = `${baseUrl}&status=${statusFilter}&page=${page}`;
@@ -75,6 +78,7 @@ export default async function VoterContactPage({
                   <div className="flex items-center gap-3">
                     <span className="font-extrabold text-[var(--heading)]">{v.initials}</span>
                     <span className="text-xs text-[var(--muted)]">#{v.id}</span>
+                    {v.contactedBy && <span className="text-xs text-[var(--muted)]">— {v.contactedBy}</span>}
                   </div>
                   <span
                     className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
@@ -83,7 +87,7 @@ export default async function VoterContactPage({
                     {meta?.label ?? "غير متواصل بعد"}
                   </span>
                 </summary>
-                <form action={setVoterContactStatus} className="px-4 pb-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                <form action={setVoterContactStatus} className="px-4 pb-4 grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
                   <input type="hidden" name="voter_id" value={v.id} />
                   <input type="hidden" name="commune_id" value={params.commune} />
                   <input type="hidden" name="polling_station_id" value={params.station} />
@@ -100,6 +104,14 @@ export default async function VoterContactPage({
                     <option value="visit">زيارة</option>
                     <option value="phone_call">اتصال هاتفي</option>
                     <option value="other">أخرى</option>
+                  </select>
+                  <select name="contacted_by" defaultValue={v.contactedBy ?? ""} className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--bg)]">
+                    <option value="">من تواصل؟ (اختياري)</option>
+                    {fieldTeam.map((m) => (
+                      <option key={`${m.type}-${m.id}`} value={m.name}>
+                        {m.name} {m.type === "activist" ? "(مناضل)" : "(متطوع)"}
+                      </option>
+                    ))}
                   </select>
                   <input
                     name="notes"
@@ -187,6 +199,7 @@ export default async function VoterContactPage({
 
   // ------- مستوى 0: كل الجماعات -------
   const { rows, totals } = await getCommuneContactSummary(supabase);
+  const fieldTeam = await getFieldTeam(supabase);
 
   return (
     <PageShell
@@ -213,27 +226,60 @@ export default async function VoterContactPage({
         </div>
       </div>
 
-      <div className="space-y-2">
-        {rows.map((r) => (
-          <a
-            key={r.commune.id}
-            href={`/voter-contact?commune=${r.commune.id}`}
-            className="block rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm hover:shadow-md transition"
-          >
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div>
-                <div className="font-extrabold text-[16px] text-[var(--heading)]">{r.commune.name}</div>
-                <div className="text-sm text-[var(--muted)] mt-0.5">{r.totalVoters.toLocaleString("ar")} ناخب</div>
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        <div className="space-y-2">
+          {rows.map((r) => (
+            <a
+              key={r.commune.id}
+              href={`/voter-contact?commune=${r.commune.id}`}
+              className="block rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm hover:shadow-md transition"
+            >
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div>
+                  <div className="font-extrabold text-[16px] text-[var(--heading)]">{r.commune.name}</div>
+                  <div className="text-sm text-[var(--muted)] mt-0.5">{r.totalVoters.toLocaleString("ar")} ناخب</div>
+                </div>
+                <span
+                  className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
+                  style={{ background: r.contactedCount > 0 ? "var(--brand-blue)" : "#9ca3af" }}
+                >
+                  {r.contactedCount.toLocaleString("ar")} تم التواصل ({pct(r.contactedCount, r.totalVoters)})
+                </span>
               </div>
-              <span
-                className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
-                style={{ background: r.contactedCount > 0 ? "var(--brand-blue)" : "#9ca3af" }}
-              >
-                {r.contactedCount.toLocaleString("ar")} تم التواصل ({pct(r.contactedCount, r.totalVoters)})
-              </span>
-            </div>
-          </a>
-        ))}
+            </a>
+          ))}
+        </div>
+
+        <aside className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm h-fit">
+          <h2 className="font-extrabold text-[var(--heading)] mb-1">الفريق الميداني</h2>
+          <p className="text-xs text-[var(--muted)] mb-3">
+            المتطوعون والمناضلون النشيطون، مع عدد مرات التواصل المسجلة باسم كل واحد. لإضافة مناضل بدل متطوع، أو تعديل حالة عضو، استعمل صفحتي
+            {" "}<a href="/volunteers" className="underline">المتطوعون</a> و<a href="/activists" className="underline">المناضلون</a>.
+          </p>
+
+          <form action={addVolunteer} className="space-y-2 mb-4 border-b border-[var(--border)] pb-4">
+            <input name="full_name" placeholder="اسم عضو جديد بالفريق" className="w-full rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]" required />
+            <input name="phone" placeholder="الهاتف (اختياري)" className="w-full rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]" />
+            <button className="w-full rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-1.5 text-sm">
+              + إضافة كمتطوع
+            </button>
+          </form>
+
+          <ul className="space-y-2">
+            {fieldTeam.length === 0 && <li className="text-xs text-[var(--muted)]">لا يوجد أعضاء بعد.</li>}
+            {fieldTeam.map((m) => (
+              <li key={`${m.type}-${m.id}`} className="flex items-center justify-between gap-2 text-sm">
+                <div>
+                  <div className="font-bold text-[var(--text)]">{m.name}</div>
+                  <div className="text-xs text-[var(--muted)]">{m.type === "activist" ? "مناضل" : "متطوع"}{m.phone ? ` — ${m.phone}` : ""}</div>
+                </div>
+                <span className="text-xs font-extrabold rounded-full bg-[var(--bg)] border border-[var(--border)] px-2.5 py-1 shrink-0">
+                  {m.contactCount.toLocaleString("ar")} تسجيل
+                </span>
+              </li>
+            ))}
+          </ul>
+        </aside>
       </div>
     </PageShell>
   );

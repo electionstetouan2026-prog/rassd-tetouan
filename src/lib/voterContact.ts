@@ -129,6 +129,7 @@ export type VoterRow = {
   status: string | null;
   channel: string | null;
   notes: string | null;
+  contactedBy: string | null;
 };
 
 const PAGE_SIZE = 50;
@@ -151,12 +152,12 @@ export async function getStationVoters(
       .range(from, to);
     const ids = (votersRaw ?? []).map((v) => v.id);
     const { data: statusRaw } = ids.length
-      ? await supabase.from("voter_contact_status").select("voter_id, status, channel, notes").in("voter_id", ids)
+      ? await supabase.from("voter_contact_status").select("voter_id, status, channel, notes, contacted_by").in("voter_id", ids)
       : { data: [] as any[] };
     const statusMap = new Map((statusRaw ?? []).map((s) => [s.voter_id as number, s]));
     const rows: VoterRow[] = (votersRaw ?? []).map((v) => {
       const s = statusMap.get(v.id);
-      return { id: v.id, initials: v.initials, status: s?.status ?? null, channel: s?.channel ?? null, notes: s?.notes ?? null };
+      return { id: v.id, initials: v.initials, status: s?.status ?? null, channel: s?.channel ?? null, notes: s?.notes ?? null, contactedBy: s?.contacted_by ?? null };
     });
     return { rows, total: count ?? 0 };
   }
@@ -177,14 +178,14 @@ export async function getStationVoters(
       .range(from, to);
     if (contactedIds.length > 0) q = q.not("id", "in", `(${contactedIds.join(",")})`);
     const { data: votersRaw, count } = await q;
-    const rows: VoterRow[] = (votersRaw ?? []).map((v) => ({ id: v.id, initials: v.initials, status: null, channel: null, notes: null }));
+    const rows: VoterRow[] = (votersRaw ?? []).map((v) => ({ id: v.id, initials: v.initials, status: null, channel: null, notes: null, contactedBy: null }));
     return { rows, total: count ?? 0 };
   }
 
   // فلترة بحالة محددة (مؤيد/متردد/معارض/إلخ)
   const { data: matchingRaw, count } = await supabase
     .from("voter_contact_status")
-    .select("voter_id, status, channel, notes", { count: "exact" })
+    .select("voter_id, status, channel, notes, contacted_by", { count: "exact" })
     .eq("polling_station_id", stationId)
     .eq("status", statusFilter)
     .order("voter_id")
@@ -201,8 +202,72 @@ export async function getStationVoters(
     status: r.status,
     channel: r.channel,
     notes: r.notes,
+    contactedBy: r.contacted_by,
   }));
   return { rows, total: count ?? 0 };
+}
+
+export type FieldTeamMember = {
+  id: string;
+  name: string;
+  type: "volunteer" | "activist";
+  phone: string | null;
+  communeId: string | null;
+  contactCount: number;
+};
+
+// عدّاد "من تواصل" لكل عضو فريق — الجدول نفسو ماشي كبير (فقط الناخبين
+// المتواصل معاهم فعلا) فكنجيبو بيه بصفحات احتياطا لنفس حد db-max-rows.
+async function fetchContactedByCounts(supabase: SupabaseClient, filterCommuneId?: string) {
+  const pageSize = 1000;
+  const counts = new Map<string, number>();
+  let from = 0;
+  for (;;) {
+    let q = supabase.from("voter_contact_status").select("contacted_by, commune_id").range(from, from + pageSize - 1);
+    if (filterCommuneId) q = q.eq("commune_id", filterCommuneId);
+    const { data, error } = await q;
+    if (error || !data) break;
+    for (const row of data as any[]) {
+      if (row.contacted_by) counts.set(row.contacted_by, (counts.get(row.contacted_by) ?? 0) + 1);
+    }
+    if (data.length < pageSize) break;
+    from += pageSize;
+  }
+  return counts;
+}
+
+// "الفريق الميداني" — يجمع المتطوعين النشيطين والمناضلين النشيطين
+// (volunteers/activists، T-078) كمصدر موحّد لأعضاء الفريق، بعدّاد
+// حقيقي لعدد مرات التواصل المسجلة باسم كل واحد فـcontacted_by.
+export async function getFieldTeam(supabase: SupabaseClient, communeId?: string) {
+  const [{ data: volunteersRaw }, { data: activistsRaw }, counts] = await Promise.all([
+    supabase.from("volunteers").select("id, full_name, phone, commune_id").eq("status", "نشيط"),
+    supabase.from("activists").select("id, full_name, phone, commune_id").eq("status", "نشيط"),
+    fetchContactedByCounts(supabase, communeId),
+  ]);
+
+  const members: FieldTeamMember[] = [
+    ...(volunteersRaw ?? []).map((v) => ({
+      id: v.id as string,
+      name: v.full_name as string,
+      type: "volunteer" as const,
+      phone: (v.phone as string) ?? null,
+      communeId: (v.commune_id as string) ?? null,
+      contactCount: counts.get(v.full_name as string) ?? 0,
+    })),
+    ...(activistsRaw ?? []).map((a) => ({
+      id: a.id as string,
+      name: a.full_name as string,
+      type: "activist" as const,
+      phone: (a.phone as string) ?? null,
+      communeId: (a.commune_id as string) ?? null,
+      contactCount: counts.get(a.full_name as string) ?? 0,
+    })),
+  ];
+
+  const filtered = communeId ? members.filter((m) => !m.communeId || m.communeId === communeId) : members;
+  filtered.sort((a, b) => b.contactCount - a.contactCount || a.name.localeCompare(b.name, "ar"));
+  return filtered;
 }
 
 export const VOTER_CONTACT_PAGE_SIZE = PAGE_SIZE;

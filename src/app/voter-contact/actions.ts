@@ -11,6 +11,7 @@ export async function setVoterContactStatus(formData: FormData) {
   const status = String(formData.get("status") ?? "contacted").trim();
   const channel = String(formData.get("channel") ?? "").trim() || null;
   const notes = String(formData.get("notes") ?? "").trim() || null;
+  const contactedBy = String(formData.get("contacted_by") ?? "").trim() || null;
   if (!voterId) return;
 
   await supabase.from("voter_contact_status").upsert(
@@ -21,6 +22,7 @@ export async function setVoterContactStatus(formData: FormData) {
       status,
       channel,
       notes,
+      contacted_by: contactedBy,
       updated_at: new Date().toISOString(),
     },
     { onConflict: "voter_id" }
