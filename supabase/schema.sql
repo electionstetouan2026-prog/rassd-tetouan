@@ -412,6 +412,26 @@ create table if not exists public.activists (
 create index if not exists activists_commune_idx on public.activists (commune_id);
 create index if not exists activists_status_idx on public.activists (status);
 
+-- ------------------------------------------------------------
+-- 14) مسؤولو/مرشحو الحزب (T-078، السياق الانتخابي) — نسخة مبسطة
+--     من لوحتي "منتخبو 2021"/"أسماء تاريخية" فالتطبيق المرجعي
+--     (يعتمد على جدول Candidate ماكاينش عندنا) — سجل واحد يدوي
+--     يملأه علي (شخصيات عمومية معروفة، ماشي بيانات ناخبين خاصة):
+--     اسم، دور (وكيل لائحة/مستشار جماعي/مرشح سابق/إلخ)، جماعة
+--     اختيارية، فئة (حالي/تاريخي).
+-- ------------------------------------------------------------
+create table if not exists public.party_officials (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  role text,
+  commune_id uuid references public.communes(id) on delete set null,
+  category text not null default 'حالي' check (category in ('حالي', 'تاريخي')),
+  notes text,
+  created_at timestamptz not null default now()
+);
+create index if not exists party_officials_commune_idx on public.party_officials (commune_id);
+create index if not exists party_officials_category_idx on public.party_officials (category);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -537,4 +557,13 @@ create policy "authenticated read activists" on public.activists
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write activists" on public.activists;
 create policy "editors write activists" on public.activists
+  for all using (public.is_editor_or_admin());
+
+alter table public.party_officials enable row level security;
+
+drop policy if exists "authenticated read party_officials" on public.party_officials;
+create policy "authenticated read party_officials" on public.party_officials
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write party_officials" on public.party_officials;
+create policy "editors write party_officials" on public.party_officials
   for all using (public.is_editor_or_admin());

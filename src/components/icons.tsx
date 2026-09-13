@@ -149,6 +149,16 @@ export function IconTarget({ className }: IconProps) {
   );
 }
 
+export function IconLandmark({ className }: IconProps) {
+  return (
+    <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 21h18" />
+      <path d="M4 21V10M9 21V10M15 21V10M20 21V10" />
+      <path d="M2.5 10 12 4l9.5 6Z" />
+    </svg>
+  );
+}
+
 export function IconMoon({ className }: IconProps) {
   return (
     <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
