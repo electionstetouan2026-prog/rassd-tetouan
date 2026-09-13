@@ -20,7 +20,7 @@ export async function addPartyOfficial(formData: FormData) {
     notes,
   });
   if (error) {
-    // تشخيص مؤقت (يُزال بعد حل مشكل 503) — راجع TASK_REGISTER.md ملاحظة اثنان وثلاثون
+    // تسجيل الخطأ فسجلات السيرفر بدل الفشل الصامت (درس من TASK_REGISTER.md ملاحظة اثنان وثلاثون)
     console.error("addPartyOfficial insert error:", JSON.stringify(error));
   }
   revalidatePath("/electoral-context");
@@ -29,6 +29,9 @@ export async function addPartyOfficial(formData: FormData) {
 export async function deletePartyOfficial(id: string) {
   "use server";
   const supabase = await createClient();
-  await supabase.from("party_officials").delete().eq("id", id);
+  const { error } = await supabase.from("party_officials").delete().eq("id", id);
+  if (error) {
+    console.error("deletePartyOfficial delete error:", JSON.stringify(error));
+  }
   revalidatePath("/electoral-context");
 }
