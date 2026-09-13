@@ -345,6 +345,29 @@ create table if not exists public.commune_localities (
 create index if not exists commune_localities_commune_idx on public.commune_localities (commune_id);
 create index if not exists commune_localities_count_idx on public.commune_localities (voter_count desc);
 
+-- ------------------------------------------------------------
+-- 11) متابعة الفريق الميداني لكل ناخب (`voters`، T-078 أول مهمة) —
+--     سجل واحد لكل ناخب "تواصلنا معاه فعلا" فقط (الجدول يبدأ فارغا
+--     عمدا، ماشي صف مسبق لكل الـ269,749 ناخب) — نفس منطق ContactStatus
+--     فالتطبيق المرجعي (tetouan2026)، لكن سجل واحد حالي لكل ناخب
+--     (upsert)، ماشي تاريخ كامل. commune_id/polling_station_id
+--     مُكرَّرين عمدا (denormalized) من voters وقت الإدخال باش تحسب
+--     إحصائيات التغطية (KPI) بسرعة بلا join على جدول 270 ألف صف.
+-- ------------------------------------------------------------
+create table if not exists public.voter_contact_status (
+  voter_id bigint primary key references public.voters(id) on delete cascade,
+  commune_id uuid references public.communes(id) on delete set null,
+  polling_station_id uuid references public.polling_stations(id) on delete set null,
+  status text not null default 'contacted',
+  channel text,
+  notes text,
+  contacted_by text,
+  updated_at timestamptz not null default now()
+);
+create index if not exists voter_contact_status_commune_idx on public.voter_contact_status (commune_id);
+create index if not exists voter_contact_status_station_idx on public.voter_contact_status (polling_station_id);
+create index if not exists voter_contact_status_status_idx on public.voter_contact_status (status);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -443,4 +466,13 @@ create policy "authenticated read commune_localities" on public.commune_localiti
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write commune_localities" on public.commune_localities;
 create policy "editors write commune_localities" on public.commune_localities
+  for all using (public.is_editor_or_admin());
+
+alter table public.voter_contact_status enable row level security;
+
+drop policy if exists "authenticated read voter_contact_status" on public.voter_contact_status;
+create policy "authenticated read voter_contact_status" on public.voter_contact_status
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write voter_contact_status" on public.voter_contact_status;
+create policy "editors write voter_contact_status" on public.voter_contact_status
   for all using (public.is_editor_or_admin());
