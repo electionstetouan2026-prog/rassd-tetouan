@@ -12,13 +12,17 @@ export async function addPartyOfficial(formData: FormData) {
   const notes = String(formData.get("notes") ?? "").trim() || null;
   if (!full_name) return;
 
-  await supabase.from("party_officials").insert({
+  const { error } = await supabase.from("party_officials").insert({
     full_name,
     role,
     commune_id,
     category,
     notes,
   });
+  if (error) {
+    // تشخيص مؤقت (يُزال بعد حل مشكل 503) — راجع TASK_REGISTER.md ملاحظة اثنان وثلاثون
+    console.error("addPartyOfficial insert error:", JSON.stringify(error));
+  }
   revalidatePath("/electoral-context");
 }
 
