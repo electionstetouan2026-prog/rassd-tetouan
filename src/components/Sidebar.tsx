@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconShield, IconFlame, IconPhone, IconHeartHand, IconIdBadge, IconBuilding, IconTarget, IconLandmark, IconLogout } from "./icons";
+import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconShield, IconFlame, IconPhone, IconHeartHand, IconIdBadge, IconBuilding, IconTarget, IconLandmark, IconUpload, IconLogout } from "./icons";
 
 const NAV_ITEMS = [
   { href: "/", label: "لوحة القيادة", Icon: IconDashboard },
@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/hot-blocks", label: "الكتل الساخنة", Icon: IconFlame },
   { href: "/stronghold-map", label: "الخريطة ومواطن القوة", Icon: IconTarget },
   { href: "/electoral-context", label: "السياق الانتخابي", Icon: IconLandmark },
+  { href: "/import", label: "استيراد عام (CSV/Excel)", Icon: IconUpload },
   { href: "/monitoring-reports", label: "لجنة المراقبة", Icon: IconShield },
   { href: "/digital-watch", label: "اليقظة الرقمية", Icon: IconEye },
   { href: "/ranking", label: "الترتيب التنافسي", Icon: IconChart },
