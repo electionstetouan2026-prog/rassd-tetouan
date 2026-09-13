@@ -21,6 +21,9 @@ export type ImportTargetConfig = {
   // حقول تُستعمل فقط للمطابقة (مثلا إيجاد مكتب تصويت) وما كتنكتبش
   // مباشرة كعمود فالجدول المستهدف
   virtualFields?: string[];
+  // إذا الملف فيه الاسم مقسّم فعمودين (النسب + الإسم) بدل عمود واحد
+  // "الاسم الكامل" — يُستعملو لتركيب full_name إذا العمود الرئيسي فارغ
+  nameParts?: { firstHeaders: string[]; lastHeaders: string[] };
 };
 
 export const IMPORT_TARGETS: Record<ImportTargetKey, ImportTargetConfig> = {
@@ -30,6 +33,7 @@ export const IMPORT_TARGETS: Record<ImportTargetKey, ImportTargetConfig> = {
     label: "المتطوعون",
     redirectPath: "/volunteers",
     hasCommune: true,
+    nameParts: { firstHeaders: ["الإسم", "الاسم الشخصي", "الاسم الأول"], lastHeaders: ["النسب", "اسم العائلة", "اللقب"] },
     fields: [
       { key: "full_name", headers: ["الاسم الكامل", "الاسم"], required: true },
       { key: "phone", headers: ["الهاتف"] },
@@ -46,6 +50,7 @@ export const IMPORT_TARGETS: Record<ImportTargetKey, ImportTargetConfig> = {
     label: "المناضلون",
     redirectPath: "/activists",
     hasCommune: true,
+    nameParts: { firstHeaders: ["الإسم", "الاسم الشخصي", "الاسم الأول"], lastHeaders: ["النسب", "اسم العائلة", "اللقب"] },
     fields: [
       { key: "full_name", headers: ["الاسم الكامل", "الاسم"], required: true },
       { key: "phone", headers: ["الهاتف"] },
@@ -63,6 +68,7 @@ export const IMPORT_TARGETS: Record<ImportTargetKey, ImportTargetConfig> = {
     label: "مسؤولو/مرشحو الحزب",
     redirectPath: "/electoral-context",
     hasCommune: true,
+    nameParts: { firstHeaders: ["الإسم", "الاسم الشخصي", "الاسم الأول"], lastHeaders: ["النسب", "اسم العائلة", "اللقب"] },
     fields: [
       { key: "full_name", headers: ["الاسم الكامل", "الاسم"], required: true },
       { key: "role", headers: ["الصفة", "الدور"] },
@@ -77,16 +83,19 @@ export const IMPORT_TARGETS: Record<ImportTargetKey, ImportTargetConfig> = {
     label: "المراقبون",
     redirectPath: "/observers",
     hasCommune: true,
-    // "الجماعة" و"رقم المكتب"/"اسم المركز" ما كيتكتبوش كأعمدة فجدول
-    // observers مباشرة — كيتستعملو غير باش يتلقى مكتب التصويت المطابق
-    // (الجدول فيه غير polling_station_id)
-    virtualFields: ["commune_name", "station_number", "station_name"],
+    nameParts: { firstHeaders: ["الإسم", "الاسم الشخصي", "الاسم الأول"], lastHeaders: ["النسب", "اسم العائلة", "اللقب"] },
+    // "الجماعة" و"رقم المكتب"/"اسم المركز"/"البطاقة الوطنية" ما كيتكتبوش
+    // كأعمدة فجدول observers مباشرة — الأولين كيتستعملو باش يتلقى مكتب
+    // التصويت المطابق (الجدول فيه غير polling_station_id)، والبطاقة
+    // الوطنية كتنزاد كسطر داخل "ملاحظات" (الجدول ماعندوش عمود خاص بيها)
+    virtualFields: ["commune_name", "station_number", "station_name", "national_id"],
     fields: [
       { key: "full_name", headers: ["الاسم الكامل", "الاسم"], required: true },
       { key: "phone", headers: ["الهاتف"] },
       { key: "commune_name", headers: ["الجماعة"] },
-      { key: "station_number", headers: ["رقم المكتب", "رقم مكتب التصويت"] },
+      { key: "station_number", headers: ["رقم المكتب", "رقم مكتب التصويت", "المكتب"] },
       { key: "station_name", headers: ["اسم المركز", "المركز"] },
+      { key: "national_id", headers: ["البطاقة الوطنية", "رقم البطاقة الوطنية"] },
       { key: "notes", headers: ["ملاحظات"] },
     ],
   },
@@ -202,9 +211,29 @@ export async function runSpreadsheetImport(
       if (value) record[field.key] = value;
     }
 
-    if (missingRequired) {
+    // إذا الاسم الكامل غايب لكن الملف فيه عمودين منفصلين (النسب + الإسم
+    // أو ما شابه)، نركبو full_name منهم قبل ما نعتبرو الصف ناقص
+    if (!record.full_name && config.nameParts) {
+      const first = findValue(row, config.nameParts.firstHeaders);
+      const last = findValue(row, config.nameParts.lastHeaders);
+      const combined = [first, last].filter(Boolean).join(" ").trim();
+      if (combined) {
+        record.full_name = combined;
+        missingRequired = false;
+      }
+    }
+
+    if (missingRequired || !record.full_name) {
       skipped.push(`صف ${rowNum}: بلا اسم كامل`);
       return;
+    }
+
+    if (targetKey === "observers") {
+      const nationalId = findValue(row, ["البطاقة الوطنية", "رقم البطاقة الوطنية"]);
+      if (nationalId) {
+        const existingNotes = String(record.notes ?? "").trim();
+        record.notes = existingNotes ? `${existingNotes} — بطاقة وطنية: ${nationalId}` : `بطاقة وطنية: ${nationalId}`;
+      }
     }
 
     let communeId: string | undefined;
