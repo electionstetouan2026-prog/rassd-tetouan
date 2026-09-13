@@ -3,23 +3,54 @@ import type { createClient } from "@/lib/supabase/server";
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
 // ============================================================
-// "السياق الانتخابي" — نسخة مبسّطة (T-078، آخر مهمة قبل محرك
-// الاستيراد العام). النسخة الأصلية فالتطبيق المرجعي (/electoral-districts)
-// كتعرض: مقاعد حزب التقدم والاشتراكية 2015/2021 لكل جماعة، مسار
-// تشريعي كامل للحزب بالدائرة (نتائج 2007-2021: أصوات/نسبة/وكيل
-// اللائحة)، ولائحتي منتخبين حاليين/تاريخيين (جدول Candidate).
+// "السياق الانتخابي" — تحديث (13 شتنبر 2026): علي أكّد عبر سكرينشوت
+// مباشر من التطبيق المرجعي (`/electoral-districts`) أن الملف الحزبي
+// التاريخي لحزب التقدم والاشتراكية بدائرة تطوان بيانات حقيقية
+// وموثّقة (وليست مفقودة كما افترضنا أول مرة) — لكنها مخزّنة فقاعدة
+// سحابية منفصلة تماما (Supabase الخاص بـtetouan2026 نفسه، عبر
+// `CLOUD_DATABASE_URL`) ماعندناش وصول ليها من هاد الجهاز (نفس القيد
+// المسجل فT-073). المصدر الأصلي: ملف `نتائج_الانتخابات_السابقة.html`
+// (بحث فعلي فالكود أكّد عدم وجوده على هاد الآيماك).
 //
-// **قيد بيانات صادق**: لا توجد فrassd-tetouan أي بيانات عن مقاعد
-// حزب التقدم والاشتراكية تحديدا (لا على مستوى الجماعة ولا الدائرة) —
-// `seed_communes_2021_baseline.sql` فيه فقط "الحزب المتصدر" لكل جماعة
-// (وحزب التقدم والاشتراكية لم يتصدر أي جماعة سنة 2021، نفس الاكتشاف
-// المسجل فT-078/stronghold-map)، ولا يوجد مسار تشريعي تاريخي مسجل.
-// **البديل**: عرض خط الأساس 2021 الحقيقي الموجود (تصدر عام + نسبته +
-// المشاركة) + أعداد ناخبينا الحقيقية (مستوردة T-076) لكل جماعة، وجدول
-// جديد بسيط (`party_officials`) يملأه علي يدويا بأسماء مسؤولي/مرشحي
-// الحزب (شخصيات عمومية، ماشي بيانات ناخبين) بدل استيراد جدول Candidate
-// كامل غير موجود عندنا.
+// **الحل المعتمد**: الأرقام التاريخية الثابتة (لن تتغير — انتخابات
+// ماضية) تُنسخ حرفيا من السكرينشوت المؤكد من علي، وتُخزَّن هنا كثابت
+// مصدره موثّق (نفس أسلوب `DISTRICT_CONTEXT` فالتطبيق المرجعي نفسو
+// للمعطيات غير القابلة للتغيير). الأسماء (منتخبون/مرشحون) تُدخل عبر
+// جدول `party_officials` الموجود أصلا (قابل للتعديل من علي فالواجهة).
 // ============================================================
+
+export const PPS_NAME = "حزب التقدم والاشتراكية";
+
+export const PPS_DISTRICT_FILE = {
+  candidate2026: "زهير الركاني",
+  candidate2026Note:
+    "التزكية التشريعية مسجلة محليا ومؤكدة في أبريل 2026 (تأكيد صحفي مباشر).",
+  candidate2026SourceUrl:
+    "https://presstetouan.com/%D8%B2%D9%87%D9%8A%D8%B1-%D8%A7%D9%84%D8%B1%D9%83%D8%A7%D9%86%D9%8A-%D9%8A%D9%82%D9%88%D8%AF-%D9%84%D8%A7%D8%A6%D8%AD%D8%A9-%D8%AD%D8%B2%D8%A8-%D8%A7%D9%84%D8%AA%D9%82%D8%AF%D9%85-%D9%88%D8%A7%D9%84/",
+  communalSeats2015: 102,
+  communalSeats2015Communes: 10,
+  communalSeats2021: 4,
+  communalSeats2021Communes: 1,
+  bestLegislativeVotes: 13289,
+  bestLegislativeYear: 2016,
+  bestLegislativePercentage: 16.72,
+  councilMembers2021Tetouan: 4,
+};
+
+export type PpsLegislativeResult = {
+  year: number;
+  seats: number;
+  votes: number | null;
+  percentage: number | null;
+  agentName: string | null;
+  participationRate: number | null;
+};
+
+export const PPS_LEGISLATIVE_HISTORY: PpsLegislativeResult[] = [
+  { year: 2021, seats: 0, votes: null, percentage: 3, agentName: null, participationRate: 36 },
+  { year: 2016, seats: 0, votes: 13289, percentage: 17, agentName: "محمد العربي أحنين", participationRate: 39 },
+  { year: 2011, seats: 0, votes: 8763, percentage: null, agentName: "محمد العربي أحنين", participationRate: 38 },
+];
 
 export type Commune = {
   id: string;

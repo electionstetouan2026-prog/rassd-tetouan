@@ -1,8 +1,17 @@
 import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { IconLandmark } from "@/components/icons";
-import { getElectoralContextData } from "@/lib/electoralContext";
+import {
+  getElectoralContextData,
+  PPS_NAME,
+  PPS_DISTRICT_FILE,
+  PPS_LEGISLATIVE_HISTORY,
+} from "@/lib/electoralContext";
 import { addPartyOfficial, deletePartyOfficial } from "./actions";
+
+function fmt(n: number | null, suffix = "") {
+  return n === null ? "غير متوفر" : `${n.toLocaleString("ar-MA")}${suffix}`;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +49,101 @@ export default async function ElectoralContextPage() {
         </div>
       </div>
 
-      <div className="rounded-xl px-5 py-4 mb-6 text-sm leading-relaxed text-white" style={{ background: "linear-gradient(120deg, var(--brand-navy) 0%, var(--brand-navy-2) 100%)" }}>
-        <strong>قيد بيانات صادق</strong>: لا تتوفر عندنا حاليا بيانات مقاعد حزب التقدم والاشتراكية تحديدا (لا على
-        مستوى الجماعة ولا الدائرة ككل)، ولا مسار تشريعي تاريخي مسجل — خط الأساس 2021 أدناه هو الحزب المتصدر عموما
-        لكل جماعة (ولم يكن حزب التقدم والاشتراكية متصدرا فأي واحدة منها). أسماء المسؤولين/المرشحين أسفله تُدخل يدويا
-        من طرف علي.
+      <section className="rounded-xl overflow-hidden mb-6 text-white shadow-sm" style={{ background: "linear-gradient(120deg, var(--brand-navy) 0%, var(--brand-navy-2) 100%)" }}>
+        <div className="grid gap-6 p-6 lg:grid-cols-[1.2fr_2fr] lg:p-8">
+          <div>
+            <p className="text-xs font-bold text-white/70">ملف الحزب — تطوان</p>
+            <h2 className="mt-1 text-2xl font-black">{PPS_NAME}</h2>
+            <div className="mt-5 rounded-2xl border border-white/15 bg-white/10 p-4">
+              <p className="text-xs font-bold text-white/70">وكيل لائحة 2026</p>
+              <p className="mt-2 text-xl font-black">{PPS_DISTRICT_FILE.candidate2026}</p>
+              <p className="mt-2 text-xs leading-6 text-white/70">{PPS_DISTRICT_FILE.candidate2026Note}</p>
+              <a
+                href={PPS_DISTRICT_FILE.candidate2026SourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-block text-xs font-bold underline decoration-white/40 underline-offset-4"
+              >
+                مصدر التحقق
+              </a>
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+              <p className="text-xs font-bold text-white/70">مقاعد جماعية 2015</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.communalSeats2015)}</p>
+              <p className="mt-1 text-[11px] text-white/60">
+                موزعة على {fmt(PPS_DISTRICT_FILE.communalSeats2015Communes)} جماعات
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+              <p className="text-xs font-bold text-white/70">مقاعد جماعية 2021</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.communalSeats2021)}</p>
+              <p className="mt-1 text-[11px] text-white/60">
+                ممثلة في {fmt(PPS_DISTRICT_FILE.communalSeats2021Communes)} جماعة
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+              <p className="text-xs font-bold text-white/70">أفضل نتيجة تشريعية مسجلة</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.bestLegislativeVotes)}</p>
+              <p className="mt-1 text-[11px] text-white/60">
+                صوتا سنة {PPS_DISTRICT_FILE.bestLegislativeYear} — نسبة {PPS_DISTRICT_FILE.bestLegislativePercentage}%
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
+              <p className="text-xs font-bold text-white/70">منتخبو جماعة تطوان 2021</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.councilMembers2021Tetouan)}</p>
+              <p className="mt-1 text-[11px] text-white/60">أسماء مسجلة أسفله (سجل مسؤولي/مرشحي الحزب)</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] mb-8 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-[var(--border)]">
+          <h2 className="font-extrabold text-[var(--heading)]">المسار التشريعي للحزب في دائرة تطوان</h2>
+          <p className="text-xs text-[var(--muted)] mt-1">
+            نتائج تشريعية 2011/2016/2021 — أرقام تاريخية ثابتة، مؤكدة من علي مباشرة (سكرينشوت من الأرشيف الأصلي
+            للحملة). الخانة "غير متوفر" لا تعني صفرا.
+          </p>
+        </div>
+        <div className="grid gap-4 p-5 md:grid-cols-3">
+          {PPS_LEGISLATIVE_HISTORY.map((r) => (
+            <div key={r.year} className="rounded-xl border border-[var(--border)] bg-[var(--bg)] p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xl font-black text-[var(--heading)]">{r.year}</span>
+                <span className="rounded-full bg-[var(--severity-high)]/10 px-3 py-1 text-[11px] font-black text-[var(--severity-high)]">
+                  {r.seats} مقاعد
+                </span>
+              </div>
+              <dl className="mt-4 space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--muted)]">الأصوات</dt>
+                  <dd className="font-black text-[var(--text)]">{fmt(r.votes)}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--muted)]">النسبة</dt>
+                  <dd className="font-black text-[var(--text)]">{fmt(r.percentage, "%")}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--muted)]">وكيل اللائحة</dt>
+                  <dd className="font-bold text-[var(--text)]">{r.agentName ?? "غير متوفر"}</dd>
+                </div>
+                <div className="flex items-center justify-between">
+                  <dt className="text-[var(--muted)]">المشاركة العامة</dt>
+                  <dd className="font-bold text-[var(--text)]">{fmt(r.participationRate, "%")}</dd>
+                </div>
+              </dl>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div className="rounded-xl px-5 py-4 mb-6 text-xs leading-relaxed text-[var(--muted)] bg-[var(--card)] border border-[var(--border)]">
+        <strong className="text-[var(--text)]">قيد بيانات صادق</strong>: البيانات أعلاه على مستوى الدائرة ككل مؤكدة
+        مباشرة من علي. تفصيل مقاعد الحزب لكل جماعة على حدة غير متوفر عندنا حاليا — خط الأساس 2021 حسب الجماعة أسفله
+        يبقى "الحزب المتصدر عموما" لكل جماعة (ولم يكن حزب التقدم والاشتراكية متصدرا فأي واحدة منها)، ماشي مقاعد
+        الحزب تحديدا. أسماء المسؤولين/المرشحين أسفله تُدخل يدويا من طرف علي.
       </div>
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] mb-8 shadow-sm overflow-hidden">
