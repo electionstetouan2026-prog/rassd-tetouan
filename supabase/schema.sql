@@ -368,6 +368,28 @@ create index if not exists voter_contact_status_commune_idx on public.voter_cont
 create index if not exists voter_contact_status_station_idx on public.voter_contact_status (polling_station_id);
 create index if not exists voter_contact_status_status_idx on public.voter_contact_status (status);
 
+-- ------------------------------------------------------------
+-- 12) إدارة المتطوعين (T-078، ثاني مهمة) — نسخة مباشرة من `FieldAgent`
+--     فالتطبيق المرجعي (schema.cloud.prisma): بيانات غير حساسة (اسم،
+--     هاتف، مهارات، توفر) لأشخاص متطوعين فالحملة (بلا علاقة بمهمة
+--     "مراقب" الرسمية المتابعة أصلا فجدول `observers`). سجل تشغيلي
+--     بحت، ماشي بيانات ناخبين.
+-- ------------------------------------------------------------
+create table if not exists public.volunteers (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  phone text,
+  email text,
+  commune_id uuid references public.communes(id) on delete set null,
+  skills text,
+  availability text,
+  status text not null default 'نشيط',
+  notes text,
+  joined_at timestamptz not null default now()
+);
+create index if not exists volunteers_commune_idx on public.volunteers (commune_id);
+create index if not exists volunteers_status_idx on public.volunteers (status);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -475,4 +497,13 @@ create policy "authenticated read voter_contact_status" on public.voter_contact_
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write voter_contact_status" on public.voter_contact_status;
 create policy "editors write voter_contact_status" on public.voter_contact_status
+  for all using (public.is_editor_or_admin());
+
+alter table public.volunteers enable row level security;
+
+drop policy if exists "authenticated read volunteers" on public.volunteers;
+create policy "authenticated read volunteers" on public.volunteers
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write volunteers" on public.volunteers;
+create policy "editors write volunteers" on public.volunteers
   for all using (public.is_editor_or_admin());

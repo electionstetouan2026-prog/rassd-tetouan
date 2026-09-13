@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
-import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconShield, IconFlame, IconPhone, IconLogout } from "./icons";
+import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconShield, IconFlame, IconPhone, IconHeartHand, IconLogout } from "./icons";
 
 const NAV_ITEMS = [
   { href: "/", label: "لوحة القيادة", Icon: IconDashboard },
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { href: "/presence", label: "خريطة الحضور", Icon: IconMap },
   { href: "/field-tasks", label: "البرنامج الميداني", Icon: IconTasks },
   { href: "/voter-contact", label: "متابعة الناخبين", Icon: IconPhone },
+  { href: "/volunteers", label: "المتطوعون", Icon: IconHeartHand },
   { href: "/hot-blocks", label: "الكتل الساخنة", Icon: IconFlame },
   { href: "/monitoring-reports", label: "لجنة المراقبة", Icon: IconShield },
   { href: "/digital-watch", label: "اليقظة الرقمية", Icon: IconEye },
