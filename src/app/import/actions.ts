@@ -17,7 +17,7 @@ export async function runImport(_prevState: ImportRunResult | null, formData: Fo
 
   const buffer = await file.arrayBuffer();
   const supabase = await createClient();
-  const result = await runSpreadsheetImport(supabase, targetKey, buffer);
+  const result = await runSpreadsheetImport(supabase, targetKey, buffer, file.name);
 
   if (result.ok) {
     revalidatePath(IMPORT_TARGETS[targetKey].redirectPath);

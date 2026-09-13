@@ -74,9 +74,18 @@ function normalizeHeader(h: string) {
   return h.trim().replace(/\s+/g, " ");
 }
 
-/** يقرأ ملف CSV أو Excel (xlsx/xls) ويرجع صفوف كـ Record<header, value> */
-export function parseSpreadsheet(buffer: ArrayBuffer): Record<string, string>[] {
-  const workbook = XLSX.read(buffer, { type: "array" });
+/**
+ * يقرأ ملف CSV أو Excel (xlsx/xls) ويرجع صفوف كـ Record<header, value>.
+ * ملفات CSV لازم تُقرأ كنص UTF-8 صريح (type: "string") — قراءتها كـ
+ * buffer/array خام كتخرب الحروف العربية (mojibake)، لأن XLSX كيفترض
+ * ترميز افتراضي (Latin-1/codepage) لملفات CSV الثنائية. ملفات xlsx/xls
+ * هي أرشيف ثنائي (zip) — لازم تُقرأ كـ array، ماشي كنص.
+ */
+export function parseSpreadsheet(buffer: ArrayBuffer, filename: string): Record<string, string>[] {
+  const isCsv = /\.csv$/i.test(filename.trim());
+  const workbook = isCsv
+    ? XLSX.read(new TextDecoder("utf-8").decode(buffer), { type: "string" })
+    : XLSX.read(buffer, { type: "array" });
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) return [];
   const sheet = workbook.Sheets[firstSheetName];
@@ -110,14 +119,15 @@ export type ImportRunResult = {
 export async function runSpreadsheetImport(
   supabase: SupabaseClient,
   targetKey: ImportTargetKey,
-  buffer: ArrayBuffer
+  buffer: ArrayBuffer,
+  filename: string
 ): Promise<ImportRunResult> {
   const config = IMPORT_TARGETS[targetKey];
   if (!config) return { ok: false, message: "نوع بيانات غير معروف." };
 
   let rawRows: Record<string, string>[];
   try {
-    rawRows = parseSpreadsheet(buffer);
+    rawRows = parseSpreadsheet(buffer, filename);
   } catch {
     return { ok: false, message: "تعذّرت قراءة الملف — تأكد أنه CSV أو Excel (xlsx/xls) صحيح." };
   }
