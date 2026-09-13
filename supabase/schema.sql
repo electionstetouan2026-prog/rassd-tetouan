@@ -390,6 +390,28 @@ create table if not exists public.volunteers (
 create index if not exists volunteers_commune_idx on public.volunteers (commune_id);
 create index if not exists volunteers_status_idx on public.volunteers (status);
 
+-- ------------------------------------------------------------
+-- 13) المناضلون (T-078، ثالث مهمة) — نسخة مباشرة من `CampaignActivist`
+--     فالتطبيق المرجعي: أعضاء الحزب المنخرطين رسميا (رقم الانخراط،
+--     الفرع المحلي، المسؤولية)، مختلفين عن المتطوعين العاديين
+--     (`volunteers`) وعن المراقبين الرسميين (`observers`).
+-- ------------------------------------------------------------
+create table if not exists public.activists (
+  id uuid primary key default gen_random_uuid(),
+  full_name text not null,
+  phone text,
+  email text,
+  membership_number text unique,
+  commune_id uuid references public.communes(id) on delete set null,
+  local_branch text,
+  responsibility text,
+  status text not null default 'نشيط',
+  notes text,
+  joined_at timestamptz not null default now()
+);
+create index if not exists activists_commune_idx on public.activists (commune_id);
+create index if not exists activists_status_idx on public.activists (status);
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -506,4 +528,13 @@ create policy "authenticated read volunteers" on public.volunteers
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write volunteers" on public.volunteers;
 create policy "editors write volunteers" on public.volunteers
+  for all using (public.is_editor_or_admin());
+
+alter table public.activists enable row level security;
+
+drop policy if exists "authenticated read activists" on public.activists;
+create policy "authenticated read activists" on public.activists
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write activists" on public.activists;
+create policy "editors write activists" on public.activists
   for all using (public.is_editor_or_admin());
