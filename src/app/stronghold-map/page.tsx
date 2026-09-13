@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { IconTarget } from "@/components/icons";
 import { getStrongholdMapData, type StrongholdRow } from "@/lib/strongholdMap";
+import CommuneChoroplethMap from "@/components/CommuneChoroplethMap";
 
 export const dynamic = "force-dynamic";
 
@@ -143,6 +144,22 @@ export default async function StrongholdMapPage() {
           بيانات ميدانية حية (تواصل، حضور، فريق)، ماشي من تاريخ انتخابي.
         </p>
       </div>
+
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 shadow-sm">
+        <h2 className="font-extrabold text-[var(--heading)] mb-1">الخريطة الجغرافية — حدود الـ22 جماعة</h2>
+        <p className="text-xs text-[var(--muted)] mb-3">
+          حدود الجماعات من OpenStreetMap (admin_level=8) — طبقة محلية محفوظة بلا حاجة لاتصال إنترنت وقت التشغيل،
+          نفس المصدر المعتمد فالتطبيق المرجعي. اللون حسب مؤشر القوة الميدانية أعلاه (ماشي تاريخ انتخابي).
+        </p>
+        <CommuneChoroplethMap
+          data={rows.map((r) => ({
+            id: r.commune.id,
+            name: r.commune.name,
+            score: r.compositeScore,
+            hint: r.dataComponents === 0 ? "لا بيانات ميدانية كافية بعد" : undefined,
+          }))}
+        />
+      </section>
 
       <div className="grid md:grid-cols-2 gap-4">
         {rows.map((row) => (
