@@ -74,6 +74,18 @@ export default function ImportForm() {
             </div>
           )}
 
+          {!!state.duplicates?.length && (
+            <div className="mt-3">
+              <div className="font-bold mb-1">أسماء مرفوضة — موجودة مسبقا/مكررة ({state.duplicates.length}):</div>
+              <ul className="list-disc pr-5 space-y-0.5">
+                {state.duplicates.slice(0, 20).map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+              {state.duplicates.length > 20 && <div className="mt-1">و{state.duplicates.length - 20} أخرى…</div>}
+            </div>
+          )}
+
           {!!state.skipped?.length && (
             <div className="mt-3">
               <div className="font-bold mb-1">صفوف تم تجاوزها ({state.skipped.length}):</div>

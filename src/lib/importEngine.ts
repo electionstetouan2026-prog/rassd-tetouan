@@ -145,7 +145,20 @@ export type ImportRunResult = {
   insertedCount?: number;
   skipped?: string[];
   communeWarnings?: string[];
+  duplicates?: string[];
 };
+
+// تطبيع الاسم للمقارنة: نشيلو المسافات الزايدة ونوحدو الهمزات/الألف
+// المقصورة الشائعة، باش "الإسم" و"الاسم" ونحو ذلك يتقابلو صح
+function normalizeNameForMatch(name: string): string {
+  return name
+    .trim()
+    .replace(/\s+/g, " ")
+    .replace(/[إأآا]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ة/g, "ه")
+    .toLowerCase();
+}
 
 export async function runSpreadsheetImport(
   supabase: SupabaseClient,
@@ -192,9 +205,22 @@ export async function runSpreadsheetImport(
     }
   }
 
+  // أسماء موجودة مسبقا فالجدول المستهدف — باش الاستيراد ما يكررش نفس
+  // المراقب/المتطوع/إلخ إذا سبق وتزاد (مثلا فمحاولة استيراد سابقة).
+  // مطابقة بالاسم المُطبّع (بلا حساسية للهمزة/المسافات الزايدة)، ماشي
+  // بمعرّف فريد، حيت الملفات ماعندهاش أي معرّف يربطها بسجلات الموقع.
+  const { data: existingRows } = await supabase.from(config.table).select("full_name");
+  const existingNames = new Set(
+    (existingRows ?? [])
+      .map((r) => normalizeNameForMatch(String(r.full_name ?? "")))
+      .filter(Boolean)
+  );
+  const seenInFile = new Set<string>();
+
   const toInsert: Record<string, unknown>[] = [];
   const skipped: string[] = [];
   const communeWarnings: string[] = [];
+  const duplicates: string[] = [];
 
   rawRows.forEach((row, idx) => {
     const rowNum = idx + 2; // +2: صف 1 هو الرأس، والفهرسة تبدأ من 0
@@ -227,6 +253,17 @@ export async function runSpreadsheetImport(
       skipped.push(`صف ${rowNum}: بلا اسم كامل`);
       return;
     }
+
+    const normalizedName = normalizeNameForMatch(String(record.full_name));
+    if (existingNames.has(normalizedName)) {
+      duplicates.push(`صف ${rowNum}: "${record.full_name}" — الاسم موجود مسبقا فالمنصة`);
+      return;
+    }
+    if (seenInFile.has(normalizedName)) {
+      duplicates.push(`صف ${rowNum}: "${record.full_name}" — مكرر داخل نفس الملف`);
+      return;
+    }
+    seenInFile.add(normalizedName);
 
     if (targetKey === "observers") {
       const nationalId = findValue(row, ["البطاقة الوطنية", "رقم البطاقة الوطنية"]);
@@ -289,11 +326,15 @@ export async function runSpreadsheetImport(
   });
 
   if (toInsert.length === 0) {
+    const allDuplicates = duplicates.length > 0 && skipped.length === 0;
     return {
       ok: false,
-      message: "لا يوجد أي صف صالح للاستيراد (كلهم بلا اسم كامل).",
+      message: allDuplicates
+        ? "كل الأسماء فالملف موجودة مسبقا فالمنصة (أو مكررة داخل الملف) — لا شيء جديد للاستيراد."
+        : "لا يوجد أي صف صالح للاستيراد (كلهم بلا اسم كامل أو مكررين).",
       totalRows: rawRows.length,
       skipped,
+      duplicates,
     };
   }
 
@@ -314,12 +355,15 @@ export async function runSpreadsheetImport(
     return { ok: false, message: `فشل الاستيراد: ${insertErrors[0]}` };
   }
 
+  const duplicatesNote = duplicates.length > 0 ? ` (تم تجاوز ${duplicates.length} اسم مكرر/موجود مسبقا)` : "";
+
   return {
     ok: true,
-    message: `تم استيراد ${insertedCount} من أصل ${rawRows.length} صف إلى "${config.label}".`,
+    message: `تم استيراد ${insertedCount} من أصل ${rawRows.length} صف إلى "${config.label}"${duplicatesNote}.`,
     totalRows: rawRows.length,
     insertedCount,
     skipped,
     communeWarnings,
+    duplicates,
   };
 }
