@@ -82,7 +82,11 @@ export default async function ObserversPage({
   );
   const totalStations = allStations.length;
   const coveredStations = confirmedStationIds.size;
-  const coveragePct = totalStations > 0 ? Math.round((coveredStations / totalStations) * 100) : 0;
+  const rawCoveragePct = totalStations > 0 ? (coveredStations / totalStations) * 100 : 0;
+  // نعرض "أقل من 1%" بدل "0%" لما تكون التغطية موجودة فعلاً لكن صغيرة جداً،
+  // باش ماتبانش الأرقام متضاربة (مثلاً "1 من 594 (0%)")
+  const coveragePctLabel =
+    coveredStations > 0 && rawCoveragePct < 1 ? "أقل من 1%" : `${Math.round(rawCoveragePct)}%`;
 
   return (
     <PageShell
@@ -94,7 +98,7 @@ export default async function ObserversPage({
         <div>
           <div className="text-sm font-bold text-[var(--muted)]">التغطية المؤكدة</div>
           <div className="text-[28px] font-extrabold text-[var(--heading)]">
-            {coveredStations} من {totalStations} مكتب ({coveragePct}%)
+            {coveredStations} من {totalStations} مكتب ({coveragePctLabel})
           </div>
         </div>
         <div className="text-sm text-[var(--muted)] max-w-md leading-relaxed">
