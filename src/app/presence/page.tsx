@@ -56,9 +56,20 @@ type Locality = {
   voter_count: number;
 };
 
+// كتوقع كسر (0-1) — مستعملة لأعمدة خط الأساس 2021 (participation_rate_2021،
+// leading_party_pct_2021) اللي مخزنة فالقاعدة كنسبة كسرية.
 function pct(n: number | null) {
   if (n === null || n === undefined) return "—";
   return `${Math.round(n * 1000) / 10}%`;
+}
+
+// كتوقع نسبة مئوية جاهزة (0-100) — هوما هاكذا كيرجعو من coverage.ts
+// (fieldCoveragePct/electionDayCoveragePct محسوبين بـ`* 100` من قبل).
+// بق حقيقي اتكتشف (14 شتنبر 2026): استعمال pct() العادية هنا كان كيضاعف
+// القسمة على 100 مرة زايدة (مثلا 1/594 = 0.168% كانت كتبان "16.8%").
+function pctRaw(n: number | null) {
+  if (n === null || n === undefined) return "—";
+  return `${Math.round(n * 10) / 10}%`;
 }
 
 // commune_localities قد يفوق 1000 سطر، وإعداد db-max-rows الافتراضي فـ Supabase
@@ -173,7 +184,7 @@ export default async function PresencePage({
           style={{ borderColor: "var(--brand-blue)", background: "var(--card)" }}
         >
           <div className="text-2xl font-extrabold" style={{ color: "var(--brand-blue)" }}>
-            {pct(coverage.overall.fieldCoveragePct)}
+            {pctRaw(coverage.overall.fieldCoveragePct)}
           </div>
           <div className="text-sm font-bold text-[var(--muted)]">
             التغطية الميدانية (خلايا) — {coverage.overall.zonesWithCells}/{coverage.overall.totalZones} منطقة
@@ -184,7 +195,7 @@ export default async function PresencePage({
           style={{ borderColor: "var(--severity-neutral)", background: "var(--card)" }}
         >
           <div className="text-2xl font-extrabold" style={{ color: "var(--severity-neutral)" }}>
-            {pct(coverage.overall.electionDayCoveragePct)}
+            {pctRaw(coverage.overall.electionDayCoveragePct)}
           </div>
           <div className="text-sm font-bold text-[var(--muted)]">
             تغطية يوم الاقتراع (مراقبون) — {coverage.overall.coveredStations}/{coverage.overall.totalStations} مكتب
@@ -242,12 +253,12 @@ export default async function PresencePage({
                   </span>
                   {communeCoverage && (
                     <span className="text-xs font-bold rounded-full px-2.5 py-1" style={{ background: "var(--bg)", color: "var(--brand-blue)" }}>
-                      تغطية ميدانية {pct(communeCoverage.fieldCoveragePct)}
+                      تغطية ميدانية {pctRaw(communeCoverage.fieldCoveragePct)}
                     </span>
                   )}
                   {communeCoverage && (
                     <span className="text-xs font-bold rounded-full px-2.5 py-1" style={{ background: "var(--bg)", color: "var(--severity-neutral)" }}>
-                      تغطية الاقتراع {pct(communeCoverage.electionDayCoveragePct)}
+                      تغطية الاقتراع {pctRaw(communeCoverage.electionDayCoveragePct)}
                     </span>
                   )}
                 </div>
