@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { addObserver, assignStation, updateObserverStatus } from "./actions";
 import { IconPeople } from "@/components/icons";
+import StationCombobox from "@/components/StationCombobox";
 
 export const dynamic = "force-dynamic";
 
@@ -121,20 +122,11 @@ export default async function ObserversPage({
             placeholder="الهاتف (اختياري)"
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
-          <select
+          <StationCombobox
             name="polling_station_id"
-            defaultValue=""
-            className="col-span-2 rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
-          >
-            <option value="">— بلا إسناد مكتب دابا —</option>
-            {allStations.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.communes?.name ?? "?"} — {s.center_name}
-                {s.sub_office_number ? ` (فرعي ${s.sub_office_number})` : ""}
-                {s.is_mock ? " · افتراضي" : ""}
-              </option>
-            ))}
-          </select>
+            placeholder="— بلا إسناد مكتب دابا — (اكتب للبحث)"
+            className="col-span-2"
+          />
           <input
             name="notes"
             placeholder="ملاحظة (اختياري)"
@@ -238,20 +230,21 @@ export default async function ObserversPage({
               )}
             </div>
             <form action={assignStation.bind(null, o.id)} className="flex gap-2 mt-3">
-              <select
+              <StationCombobox
                 name="polling_station_id"
                 defaultValue={o.polling_station_id ?? ""}
-                className="flex-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]"
-              >
-                <option value="">— بلا إسناد —</option>
-                {allStations.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.communes?.name ?? "?"} — {s.center_name}
-                    {s.sub_office_number ? ` (فرعي ${s.sub_office_number})` : ""}
-                    {s.is_mock ? " · افتراضي" : ""}
-                  </option>
-                ))}
-              </select>
+                defaultLabel={
+                  o.polling_stations
+                    ? `${o.polling_stations.communes?.name ?? "?"} — ${o.polling_stations.center_name}${
+                        o.polling_stations.sub_office_number
+                          ? ` (فرعي ${o.polling_stations.sub_office_number})`
+                          : ""
+                      }`
+                    : ""
+                }
+                placeholder="— بلا إسناد — (اكتب للبحث)"
+                className="flex-1"
+              />
               <button className="text-sm font-bold rounded-lg border border-[var(--border)] px-3.5 py-1.5">
                 تغيير المكتب
               </button>
