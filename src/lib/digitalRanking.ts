@@ -1,5 +1,6 @@
 import type { createClient } from "@/lib/supabase/server";
 import { OUR_CANDIDATE_KEY, ALL_ENTITY_NAMES } from "./polibrandEntities";
+import { getCandidatesMap } from "./candidates";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
 
@@ -22,6 +23,12 @@ export type EntityDigitalStats = {
   estimatedInfluence: number;
   sentimentCounts: Record<string, number>;
   trend: "up" | "down" | "flat" | null;
+  // "الوزن السياسي البنيوي" — من جدول candidates (منصب/تاريخ انتخابي/
+  // حزب)، مستقل كليا على بوليبراند. null = اسم مكتشف تلقائيا بعد
+  // مازال ما تزادش لجدول candidates (راجع src/lib/candidates.ts)
+  baselineStrength: number | null;
+  party: string | null;
+  currentPosition: string | null;
 };
 
 export type DigitalRankingData = {
@@ -55,34 +62,44 @@ export async function getDigitalCompetitiveRanking(
   prevSince.setDate(prevSince.getDate() - windowDays * 2);
   const prevSinceDate = prevSince.toISOString().slice(0, 10);
 
-  const { data: rows } = await supabase
-    .from("polibrand_mentions")
-    .select("entry_date, matched_entities, ai_entities, ai_influence_score, ai_analyzed_at, menace")
-    .gte("entry_date", prevSinceDate)
-    .or("matched_entities.not.is.null,ai_entities.not.is.null");
+  const [{ data: rows }, candidatesMap] = await Promise.all([
+    supabase
+      .from("polibrand_mentions")
+      .select("entry_date, matched_entities, ai_entities, ai_influence_score, ai_analyzed_at, menace")
+      .gte("entry_date", prevSinceDate)
+      .or("matched_entities.not.is.null,ai_entities.not.is.null"),
+    getCandidatesMap(supabase),
+  ]);
 
   type Stat = EntityDigitalStats & { _mentionCount: number };
   const stats = new Map<string, Stat>(
-    ALL_ENTITY_NAMES.map((name) => [
-      name,
-      {
+    ALL_ENTITY_NAMES.map((name) => {
+      const profile = candidatesMap.get(name);
+      return [
         name,
-        isUs: name === OUR_CANDIDATE_KEY,
-        isNewlyDiscovered: false,
-        currentCount: 0,
-        previousCount: 0,
-        analyzedCount: 0,
-        estimatedInfluence: 0,
-        sentimentCounts: { "إيجابي": 0, "محايد": 0, "سلبي": 0 },
-        trend: null,
-        _mentionCount: 0,
-      },
-    ])
+        {
+          name,
+          isUs: name === OUR_CANDIDATE_KEY,
+          isNewlyDiscovered: false,
+          currentCount: 0,
+          previousCount: 0,
+          analyzedCount: 0,
+          estimatedInfluence: 0,
+          sentimentCounts: { "إيجابي": 0, "محايد": 0, "سلبي": 0 },
+          trend: null,
+          baselineStrength: profile?.baselineStrength ?? null,
+          party: profile?.party ?? null,
+          currentPosition: profile?.currentPosition ?? null,
+          _mentionCount: 0,
+        },
+      ];
+    })
   );
 
   function getOrCreate(name: string): Stat {
     let s = stats.get(name);
     if (!s) {
+      const profile = candidatesMap.get(name);
       s = {
         name,
         isUs: false,
@@ -93,6 +110,9 @@ export async function getDigitalCompetitiveRanking(
         estimatedInfluence: 0,
         sentimentCounts: { "إيجابي": 0, "محايد": 0, "سلبي": 0 },
         trend: null,
+        baselineStrength: profile?.baselineStrength ?? null,
+        party: profile?.party ?? null,
+        currentPosition: profile?.currentPosition ?? null,
         _mentionCount: 0,
       };
       stats.set(name, s);

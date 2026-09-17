@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/hot-blocks", label: "الكتل الساخنة", Icon: IconFlame },
   { href: "/stronghold-map", label: "الخريطة ومواطن القوة", Icon: IconTarget },
   { href: "/electoral-context", label: "السياق الانتخابي", Icon: IconLandmark },
+  { href: "/candidates", label: "ملفات المرشحين", Icon: IconIdBadge },
   { href: "/import", label: "استيراد عام (CSV/Excel)", Icon: IconUpload },
   { href: "/monitoring-reports", label: "لجنة المراقبة", Icon: IconShield },
   { href: "/digital-watch", label: "اليقظة الرقمية", Icon: IconEye },

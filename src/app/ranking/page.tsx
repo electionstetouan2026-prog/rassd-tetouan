@@ -66,15 +66,25 @@ export default async function RankingPage({
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
           <h2 className="text-lg font-extrabold text-[var(--heading)]">الترتيب الرقمي التنافسي</h2>
-          <Link href="/digital-watch/import-polibrand" className="text-sm text-[var(--brand-blue)] font-semibold underline">
-            استيراد بيانات جديدة من بوليبراند ↗
-          </Link>
+          <div className="flex items-center gap-3 flex-wrap">
+            <Link href="/candidates" className="text-sm text-[var(--brand-blue)] font-semibold underline">
+              ملفات المرشحين ↗
+            </Link>
+            <Link href="/digital-watch/import-polibrand" className="text-sm text-[var(--brand-blue)] font-semibold underline">
+              استيراد بيانات جديدة من بوليبراند ↗
+            </Link>
+          </div>
         </div>
         <p className="text-sm text-[var(--muted)] mb-4">
-          من كيهيمن على الفضاء الرقمي على مستوى الدائرة كاملة (آخر {digitalRanking.windowDays} يوم) — ترتيب مبني
+          من كيهيمن على الفضاء الرقمي على مستوى الدائرة كاملة (آخر {digitalRanking.windowDays} يوم) — الترتيب مبني
           على "تأثير مقدَّر" (تفاعل + انتشار المصدر، محسوب بالذكاء الاصطناعي) ماشي مجرد عدد الإشارات الخام، نحن
-          مقابل كل منافس (بما فيهم أسماء مكتشفة تلقائيا ماكانتش متوقعة). تقدير اجتهادي، ماشي استطلاع رأي علمي، وماشي
-          بديل عن الحضور الميداني أسفله.
+          مقابل كل منافس (بما فيهم أسماء مكتشفة تلقائيا ماكانتش متوقعة). "الوزن البنيوي" المعروض بجانبه مؤشر منفصل
+          ومستقل كليا على بوليبراند — مبني على منصب المرشح الحالي وتاريخه الانتخابي (
+          <Link href="/candidates" className="underline">
+            تعديل من هنا
+          </Link>
+          )، باش لا يختفي مرشح حقيقي من الترتيب لمجرد أن بوليبراند ما غطاهش. تقدير اجتهادي، ماشي استطلاع رأي علمي،
+          وماشي بديل عن الحضور الميداني أسفله.
           {digitalRanking.analyzedShare < 1 && (
             <>
               {" "}
@@ -100,6 +110,13 @@ export default async function RankingPage({
               >
                 <span className="font-bold">
                   {i + 1}. {r.name}
+                  {(r.party || r.currentPosition) && (
+                    <span className="mr-2 text-xs font-normal opacity-70">
+                      {r.party ?? ""}
+                      {r.party && r.currentPosition ? " · " : ""}
+                      {r.currentPosition ?? ""}
+                    </span>
+                  )}
                   {r.isNewlyDiscovered && <span className="mr-2 text-xs opacity-80">🆕 مكتشف تلقائيا</span>}
                   {r.trend && <span className="mr-2 opacity-80">{TREND_ICON[r.trend]}</span>}
                 </span>
@@ -113,6 +130,18 @@ export default async function RankingPage({
                   </span>
                   <span className="text-xs opacity-80">{r.currentCount} إشارة</span>
                   <span className="font-extrabold">تأثير: {r.estimatedInfluence}</span>
+                  {r.baselineStrength != null && (
+                    <span
+                      className="text-xs font-bold rounded-full px-2.5 py-1"
+                      style={{
+                        background: r.isUs ? "rgba(255,255,255,0.2)" : "var(--card)",
+                        border: r.isUs ? "none" : "1px solid var(--border)",
+                      }}
+                      title="الوزن السياسي البنيوي — منصب/تاريخ انتخابي، مستقل عن إشارات بوليبراند"
+                    >
+                      وزن بنيوي: {r.baselineStrength}
+                    </span>
+                  )}
                 </span>
               </div>
             ))}

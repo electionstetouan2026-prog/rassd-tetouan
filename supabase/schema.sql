@@ -492,6 +492,64 @@ alter table public.polibrand_mentions add column if not exists ai_analyzed_at ti
 create index if not exists polibrand_mentions_ai_pending_idx
   on public.polibrand_mentions (entry_date desc) where ai_analyzed_at is null;
 
+-- ------------------------------------------------------------
+-- 16) سجل المرشحين الرسمي بدائرة تطوان (طلب علي، 17 شتنبر 2026) —
+--     مصدر "الوزن السياسي البنيوي" اللي كيكمل الترتيب المبني على
+--     إشارات بوليبراند (نبض حالي/متقلب، digitalRanking.ts) بمؤشر
+--     أبطأ وأثبت يعكس مين هو المرشح فعليا (منصب، تاريخ انتخابي،
+--     حزب) بغض النظر واش بوليبراند غطاه ولا لا — السبب المباشر:
+--     مرشحين حقيقيين (بينهم نواب حاليين) كانوا غايبين كليا على
+--     الترتيب لأن بوليبراند ماغطاهمش. مبني بعد بحث فالصحافة المحلية
+--     + بوابة الانتخابات الرسمية (elections.ma، 17 لائحة مؤكدة
+--     لدائرة تطوان) + تدقيق يدوي من علي (16 من 17 مؤكدين، لائحة
+--     واحدة — FFD — بلا أي معلومة متوفرة رقميا لحد الآن).
+--     الأسماء هنا خاصها تطابق بالحرف أسماء polibrandEntities.ts
+--     (RIVALS/OUR_CANDIDATE_KEY) باش يخدم الربط بالاسم فالترتيب —
+--     أي إضافة/تعديل اسم هنا خاصو يتوازى فذاك الملف والعكس صحيح.
+--     baseline_strength (0-100) تقدير أولي يدوي (حسب المنصب/الأقدمية
+--     الانتخابية وقت الإدخال)، قابل للتعديل من صفحة /candidates —
+--     ماشي مقاس علمي دقيق.
+-- ------------------------------------------------------------
+create table if not exists public.candidates (
+  id uuid primary key default gen_random_uuid(),
+  name text not null unique,
+  is_our_candidate boolean not null default false,
+  party text,
+  current_position text,
+  electoral_history text,
+  baseline_strength numeric not null default 50 check (baseline_strength >= 0 and baseline_strength <= 100),
+  notes text,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+create index if not exists candidates_name_idx on public.candidates (name);
+
+insert into public.candidates (name, is_our_candidate, party, current_position, electoral_history, baseline_strength) values
+  ('زهير الركاني', true, 'التقدم والاشتراكية (PPS)', 'كاتب إقليمي، نائب رئيس جماعة تطوان', null, 50),
+  ('راشيد الطالبي العلمي', false, 'التجمع الوطني للأحرار (RNI)', 'رئيس مجلس النواب', '5 ولايات متتالية منذ 2002', 95),
+  ('محمد العربي أحنين', false, 'الأصالة والمعاصرة (PAM)', 'رئيس جماعة أزلا', '3 ولايات برلمانية، المركز الثاني 2021', 80),
+  ('منصف الطوب', false, 'الاستقلال (PI)', null, 'نائب منذ 2021 (أول ولاية)', 65),
+  ('حميد الدراق', false, 'الاتحاد الاشتراكي (USFP)', null, 'نائب منذ 2021', 60),
+  ('نور الدين الهاروشي', false, 'الاتحاد الدستوري (UC)', null, 'نائب حالي، انتقل من حزب لآخر', 55),
+  ('أحمد بوخبزة', false, 'العدالة والتنمية (PJD)', null, 'نائب سابق 2011-2016، وجه تاريخي للحزب', 60),
+  ('إسحاق شارية', false, 'الحزب المغربي الحر (PML)', 'أمين عام الحزب', 'أول محاولة برلمانية', 50),
+  ('إبراهيم بنصبيح', false, 'الحركة الشعبية (MP)', 'رئيس المجلس الإقليمي لتطوان', null, 75),
+  ('حمزة الخروبي', false, 'البيئة والتنمية المستدامة (PEDD)', null, 'أصغر مرشح (28 عاما)، مقاول شاب وفاعل مدني', 30),
+  ('سليمان أخوماش', false, 'الحركة الديمقراطية الاجتماعية (MDS)', null, 'ابن برلماني سابق، اسم عائلي معروف', 40),
+  ('إدريس أفتيس', false, 'فدرالية اليسار (AG)', 'عضو مجلس جماعة تطوان', 'محامي منذ 2008', 45),
+  ('عماد اليوسفي', false, 'الحزب الديمقراطي الوطني (PDN)', 'وكيل اللائحة', null, 30),
+  ('محمد الحساني', false, 'الديمقراطيون الجدد (PND)', null, null, 30),
+  ('محمد لوشامي', false, 'حزب الإنصاف (P.EQUITE)', null, 'فاعل مدني، رئيس مرصد حقوقي', 30),
+  ('الهاشمي بوغيث', false, 'الوحدة والديمقراطية (PUD)', 'وكيل اللائحة، تاجر', null, 20)
+on conflict (name) do update set
+  party = excluded.party,
+  current_position = excluded.current_position,
+  electoral_history = excluded.electoral_history,
+  updated_at = now();
+-- ملاحظة: on conflict ما كيلمسش baseline_strength عمدا — باش تعديل
+-- علي اليدوي من /candidates ما يترجعش للتقدير الأولي عند إعادة تنفيذ
+-- هاد الملف.
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -635,4 +693,13 @@ create policy "authenticated read polibrand_mentions" on public.polibrand_mentio
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write polibrand_mentions" on public.polibrand_mentions;
 create policy "editors write polibrand_mentions" on public.polibrand_mentions
+  for all using (public.is_editor_or_admin());
+
+alter table public.candidates enable row level security;
+
+drop policy if exists "authenticated read candidates" on public.candidates;
+create policy "authenticated read candidates" on public.candidates
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write candidates" on public.candidates;
+create policy "editors write candidates" on public.candidates
   for all using (public.is_editor_or_admin());
