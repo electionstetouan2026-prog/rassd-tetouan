@@ -1,5 +1,5 @@
 import type { createClient } from "@/lib/supabase/server";
-import { OUR_CANDIDATE_KEY, ALL_ENTITY_NAMES } from "./polibrandEntities";
+import { OUR_CANDIDATE_KEY, ALL_ENTITY_NAMES, NATIONAL_NOISE_EXCLUSIONS } from "./polibrandEntities";
 import { getCandidatesMap } from "./candidates";
 
 type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
@@ -12,6 +12,8 @@ const UNANALYZED_BASELINE_INFLUENCE = 15;
 // سلفا) يبان فالترتيب — تفاديا لظهور أسماء عابرة (صحافي، مسؤول محلي
 // غير سياسي...) بمجرد ذكر واحد
 const NEW_ENTITY_MIN_MENTIONS = 3;
+
+const NATIONAL_NOISE_SET = new Set(NATIONAL_NOISE_EXCLUSIONS);
 
 export type EntityDigitalStats = {
   name: string;
@@ -126,7 +128,10 @@ export async function getDigitalCompetitiveRanking(
   for (const row of rows ?? []) {
     const matched = String(row.matched_entities ?? "").split(",").map((s) => s.trim()).filter(Boolean);
     const aiFound = String(row.ai_entities ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-    const entities = Array.from(new Set([...matched, ...aiFound]));
+    // شخصيات وطنية (وزراء/أمناء عامون على المستوى الوطني) كتنقاد
+    // بالخطأ فأخبار سياسية عامة — مافيهاش علاقة بدائرة تطوان، كتتشطب
+    // هنا قبل ما تتحسب (راجع NATIONAL_NOISE_EXCLUSIONS)
+    const entities = Array.from(new Set([...matched, ...aiFound])).filter((n) => !NATIONAL_NOISE_SET.has(n));
     if (entities.length === 0) continue;
 
     const isCurrentWindow = String(row.entry_date) >= sinceDate;
