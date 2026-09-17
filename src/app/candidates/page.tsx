@@ -18,10 +18,14 @@ type CandidateRow = {
 
 export default async function CandidatesPage() {
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("candidates")
     .select("id, name, is_our_candidate, party, current_position, electoral_history, baseline_strength, notes")
     .order("baseline_strength", { ascending: false });
+
+  if (error) {
+    console.error("candidates page select error:", JSON.stringify(error));
+  }
 
   const rows = (data ?? []) as CandidateRow[];
 
@@ -98,7 +102,15 @@ export default async function CandidatesPage() {
             </div>
           </form>
         ))}
-        {rows.length === 0 && (
+        {error && (
+          <div className="rounded-xl border border-red-300 bg-red-50 p-4 text-xs text-red-800" dir="ltr">
+            <strong>Supabase error:</strong> {error.message}
+            {error.code && <> (code: {error.code})</>}
+            {error.hint && <div>hint: {error.hint}</div>}
+            {error.details && <div>details: {error.details}</div>}
+          </div>
+        )}
+        {!error && rows.length === 0 && (
           <p className="text-sm text-[var(--muted)]">
             جدول candidates فارغ بعد — نفّذ قسم 16 من supabase/schema.sql باش تتزاد بيانات المرشحين.
           </p>
