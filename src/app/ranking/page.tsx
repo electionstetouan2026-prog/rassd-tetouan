@@ -2,10 +2,12 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { IconChart } from "@/components/icons";
 import { getRankingData } from "@/lib/ranking";
+import { getDigitalCompetitiveRanking } from "@/lib/digitalRanking";
 import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { generateRankingSummary } from "./actions";
 import AiSummaryBox from "./AiSummaryBox";
 import ListSearch from "@/components/ListSearch";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,8 @@ const SENTIMENT_ICON: Record<string, string> = {
   "محايد": "⚪",
   "سلبي": "🔴",
 };
+
+const TREND_ICON: Record<string, string> = { up: "📈", down: "📉", flat: "➖" };
 
 export default async function RankingPage({
   searchParams,
@@ -26,10 +30,11 @@ export default async function RankingPage({
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
 
-  const [{ communes, communeRows, totalUrgentOpen, communesWithFieldData, unassignedEntries }, { data: todaySummary }] =
+  const [{ communes, communeRows, totalUrgentOpen, communesWithFieldData, unassignedEntries }, { data: todaySummary }, digitalRanking] =
     await Promise.all([
       getRankingData(supabase),
       supabase.from("ranking_ai_summaries").select("summary_text, model, created_at").eq("summary_date", today).maybeSingle(),
+      getDigitalCompetitiveRanking(supabase),
     ]);
 
   const visibleRows = view === "attention" ? communeRows.filter((r) => r.needsAttention) : communeRows;
@@ -57,6 +62,57 @@ export default async function RankingPage({
           )}
         </div>
       </div>
+
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 shadow-sm">
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
+          <h2 className="text-lg font-extrabold text-[var(--heading)]">الترتيب الرقمي التنافسي</h2>
+          <Link href="/digital-watch/import-polibrand" className="text-sm text-[var(--brand-blue)] font-semibold underline">
+            استيراد بيانات جديدة من بوليبراند ↗
+          </Link>
+        </div>
+        <p className="text-sm text-[var(--muted)] mb-4">
+          من كيهيمن على الفضاء الرقمي على مستوى الدائرة كاملة (آخر {digitalRanking.windowDays} يوم) — حجم الإشارات
+          المستوردة من بوليبراند لكل اسم، نحن مقابل كل منافس مسمّى. تقدير مبني على حجم التغطية الإعلامية المرصودة
+          فقط، ماشي استطلاع رأي علمي، وماشي بديل عن الحضور الميداني أسفله.
+        </p>
+        {digitalRanking.hasData ? (
+          <div className="space-y-2">
+            {digitalRanking.ranked.map((r, i) => (
+              <div
+                key={r.name}
+                className="flex items-center justify-between gap-3 rounded-lg px-3.5 py-2.5 text-sm"
+                style={{
+                  background: r.isUs ? "var(--brand-blue)" : "var(--bg)",
+                  color: r.isUs ? "white" : "var(--text)",
+                }}
+              >
+                <span className="font-bold">
+                  {i + 1}. {r.name}
+                  {r.trend && <span className="mr-2 opacity-80">{TREND_ICON[r.trend]}</span>}
+                </span>
+                <span className="flex items-center gap-3 font-semibold">
+                  <span>
+                    {SENTIMENT_ICON["إيجابي"]} {r.sentimentCounts["إيجابي"]}
+                    {"  "}
+                    {SENTIMENT_ICON["محايد"]} {r.sentimentCounts["محايد"]}
+                    {"  "}
+                    {SENTIMENT_ICON["سلبي"]} {r.sentimentCounts["سلبي"]}
+                  </span>
+                  <span className="font-extrabold">{r.currentCount} إشارة</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--muted)]">
+            ماكاينش بيانات مستوردة بعد من بوليبراند —{" "}
+            <Link href="/digital-watch/import-polibrand" className="text-[var(--brand-blue)] underline">
+              استورد أول ملف من هنا
+            </Link>
+            .
+          </p>
+        )}
+      </section>
 
       <AiSummaryBox
         summaryText={todaySummary?.summary_text ?? null}

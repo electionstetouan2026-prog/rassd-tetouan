@@ -1,0 +1,66 @@
+// تصنيف الكيانات (نحن + المنافسون المسمّون) المستعمل لتصفية استيراد
+// بوليبراند وحساب الترتيب التنافسي الرقمي. مبني مباشرة على عمود
+// "Termes détectés" الحقيقي كما ظهر فالملفات الثلاثة اللي صدّرها علي
+// (9-17 شتنبر 2026) — ماشي قائمة مخترعة. القرار (راجع
+// claude/POLIBRAND_INTEGRATION_PLAN.md، القسم 3-ج): نعتبر الصف
+// "متعلق بالحملة" فقط إذا فيه اسم المرشح أو اسم منافس مسمّى بالضبط —
+// بلا الوسم العام لاسم الحزب (PPS/حزب التقدم والاشتراكية) لوحده، حيت
+// هو اللي كيجيب الضجيج الوطني البعيد عن دائرة تطوان.
+
+export const OUR_CANDIDATE_KEY = "زهير الركاني";
+
+// كل المتغيرات اللي شفناها فعليا فعمود Termes détectés (عربية،
+// بالهمزة/الياء المختلفة، فرنسية/انجليزية transliteration)
+export const OUR_CANDIDATE_TERMS = [
+  "زهير الركاني",
+  "زهیر الركاني",
+  "الركاني",
+  "الروكاني",
+  "زهیر الروكاني",
+  "#زهير_الركاني",
+  "Zouhair Roggani",
+  "Roggani",
+  "Rogani",
+];
+
+export type RivalEntity = { name: string; terms: string[] };
+
+// المنافسون المسمّون بالاسم (~10) كما ظهرو فعمود Termes détectés —
+// كل واحد بمتغير واحد لحد الآن، اللائحة قابلة للتوسيع إذا ظهرت
+// متغيرات جديدة فملفات مستقبلية
+export const RIVALS: RivalEntity[] = [
+  { name: "الطالبي العلمي", terms: ["الطالبي العلمي"] },
+  { name: "العربي أحنين", terms: ["العربي أحنين"] },
+  { name: "منصف الطوب", terms: ["منصف الطوب"] },
+  { name: "أحمد بوخبزة", terms: ["أحمد بوخبزة"] },
+  { name: "إدريس أفتيس", terms: ["إدريس أفتيس"] },
+  { name: "محمد الحساني", terms: ["محمد الحساني"] },
+  { name: "حمزة الخروبي", terms: ["حمزة الخروبي"] },
+  { name: "سليمان أخوماش", terms: ["سليمان أخوماش"] },
+  { name: "عماد اليوسفي", terms: ["عماد اليوسفي"] },
+  { name: "محمد لوشامي", terms: ["محمد لوشامي"] },
+];
+
+export const ALL_ENTITY_NAMES = [OUR_CANDIDATE_KEY, ...RIVALS.map((r) => r.name)];
+
+/**
+ * كيرجع لائحة الكيانات (نحن/منافسين) المطابقة لنص "Termes détectés"
+ * الخام لصف واحد (نص مفصول بفاصلة). صف واحد يقدر يطابق أكثر من كيان
+ * (مثلا خبر كيدكر المرشح وكذا منافس فنفس الوقت) — الاثنين كيتحسبو.
+ */
+export function matchEntities(termesDetectesRaw: string): string[] {
+  const terms = termesDetectesRaw
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean);
+  if (terms.length === 0) return [];
+
+  const matched = new Set<string>();
+  for (const t of terms) {
+    if (OUR_CANDIDATE_TERMS.includes(t)) matched.add(OUR_CANDIDATE_KEY);
+    for (const rival of RIVALS) {
+      if (rival.terms.includes(t)) matched.add(rival.name);
+    }
+  }
+  return Array.from(matched);
+}

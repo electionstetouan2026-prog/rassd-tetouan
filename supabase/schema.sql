@@ -432,6 +432,50 @@ create table if not exists public.party_officials (
 create index if not exists party_officials_commune_idx on public.party_officials (commune_id);
 create index if not exists party_officials_category_idx on public.party_officials (category);
 
+-- ------------------------------------------------------------
+-- 15) أرشيف خام لإشارات بوليبراند المستوردة يدويا (طلب علي، 17 شتنبر
+--     2026) — بوليبراند (منصة مراقبة إعلامية خارجية) ماعندهاش
+--     API/webhook متاح لحساب "editor"، والتصدير اليدوي (زر "Exporter"
+--     فصفحة /mentions ديالها) هو الطريق الوحيد المتاح فعليا. هاد
+--     الجدول كيحافظ على البيانات الخام كاملة (Score/Niveau/Menace/
+--     Termes détectés...) للأرشفة والتدقيق، بغض النظر واش الصف
+--     "متعلق" بالحملة ولا لا (أغلب المحتوى إخبار محلي عام). الصفوف
+--     المتعلقة فعلا (matched_entities غير فارغ — مطابقة لاسم المرشح
+--     أو منافس مسمّى من src/lib/polibrandEntities.ts) كيتولد منها
+--     تلقائيا سطر فـ digital_watch_entries وقت الاستيراد (راجع
+--     src/lib/polibrandImport.ts). التكرار عند إعادة تصدير نفس
+--     الفترة كيتافى بالمفتاح الفريد (platform, content_url).
+--     matched_entities نص بسيط مفصول بفاصلة (ماشي array) تماشيا مع
+--     أسلوب بقية الملف (تحليل/مطابقة فكود التطبيق، ماشي فالقاعدة).
+-- ------------------------------------------------------------
+create table if not exists public.polibrand_mentions (
+  id uuid primary key default gen_random_uuid(),
+  entry_date date not null,
+  platform text not null check (platform in ('صحافة', 'فيسبوك', 'انستغرام')),
+  source_name text,
+  author text,
+  title text,
+  text_excerpt text,
+  content_url text,
+  niveau text,
+  score numeric,
+  menace boolean not null default false,
+  justification text,
+  quoted_excerpt text,
+  termes_detectes text,
+  matched_entities text,
+  reactions integer,
+  comments_count integer,
+  shares integer,
+  import_batch_id uuid,
+  created_by uuid references public.profiles(id),
+  created_at timestamptz not null default now()
+);
+create index if not exists polibrand_mentions_date_idx on public.polibrand_mentions (entry_date);
+create index if not exists polibrand_mentions_platform_idx on public.polibrand_mentions (platform);
+create unique index if not exists polibrand_mentions_platform_url_idx
+  on public.polibrand_mentions (platform, content_url) where content_url is not null;
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================
@@ -566,4 +610,13 @@ create policy "authenticated read party_officials" on public.party_officials
   for select using (auth.role() = 'authenticated');
 drop policy if exists "editors write party_officials" on public.party_officials;
 create policy "editors write party_officials" on public.party_officials
+  for all using (public.is_editor_or_admin());
+
+alter table public.polibrand_mentions enable row level security;
+
+drop policy if exists "authenticated read polibrand_mentions" on public.polibrand_mentions;
+create policy "authenticated read polibrand_mentions" on public.polibrand_mentions
+  for select using (auth.role() = 'authenticated');
+drop policy if exists "editors write polibrand_mentions" on public.polibrand_mentions;
+create policy "editors write polibrand_mentions" on public.polibrand_mentions
   for all using (public.is_editor_or_admin());

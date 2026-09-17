@@ -1,8 +1,9 @@
 import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { addDigitalWatchEntry, updateDigitalWatchStatus } from "./actions";
-import { IconEye } from "@/components/icons";
+import { IconEye, IconUpload } from "@/components/icons";
 import ListSearch from "@/components/ListSearch";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,13 @@ export default async function DigitalWatchPage({
           {" · "}
           {entries.length} تسجيل مجموع
         </div>
+        <Link
+          href="/digital-watch/import-polibrand"
+          className="flex items-center gap-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition text-sm"
+        >
+          <IconUpload />
+          استيراد من بوليبراند
+        </Link>
       </div>
 
       <section className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
