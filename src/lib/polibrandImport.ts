@@ -25,6 +25,7 @@ export type PolibrandImportResult = {
   relevantCount?: number;
   digitalWatchCreatedCount?: number;
   duplicateCount?: number;
+  error?: string | null;
 };
 
 function parseIntOrNull(v: string | undefined): number | null {
@@ -76,13 +77,28 @@ export async function runPolibrandImport(
   }
 
   // جلب الروابط المستوردة مسبقا لهاد المنصة، لتفادي تكرار نفس
-  // الإشارة عند إعادة تصدير فترة متداخلة
-  const { data: existingRaw } = await supabase
-    .from("polibrand_mentions")
-    .select("content_url")
-    .eq("platform", platform)
-    .not("content_url", "is", null);
-  const seenUrls = new Set((existingRaw ?? []).map((r) => String(r.content_url)));
+  // الإشارة عند إعادة تصدير فترة متداخلة.
+  // ملاحظة: Supabase/PostgREST كيحدد 1000 صف كحد أقصى فكل استعلام —
+  // خاصنا نجيبو الصفحات كاملة (paginate) وإلا الجدول كبر أكثر من
+  // 1000 إشارة، غادي يعاود يستورد صفوف قديمة كأنها جديدة.
+  const seenUrls = new Set<string>();
+  {
+    const pageSize = 1000;
+    for (let from = 0; ; from += pageSize) {
+      const { data: page, error: pageError } = await supabase
+        .from("polibrand_mentions")
+        .select("content_url")
+        .eq("platform", platform)
+        .not("content_url", "is", null)
+        .range(from, from + pageSize - 1);
+      if (pageError) {
+        console.error("runPolibrandImport existingRaw select error:", JSON.stringify(pageError));
+        break;
+      }
+      for (const r of page ?? []) seenUrls.add(String(r.content_url));
+      if (!page || page.length < pageSize) break;
+    }
+  }
 
   const importBatchId = crypto.randomUUID();
   const rawToInsert: Record<string, unknown>[] = [];
@@ -159,17 +175,28 @@ export async function runPolibrandImport(
 
   const chunkSize = 500;
   let rawInsertedCount = 0;
+  let firstInsertError: string | null = null;
   for (let i = 0; i < rawToInsert.length; i += chunkSize) {
     const chunk = rawToInsert.slice(i, i + chunkSize);
     const { error, count } = await supabase.from("polibrand_mentions").insert(chunk, { count: "exact" });
-    if (!error) rawInsertedCount += count ?? chunk.length;
+    if (!error) {
+      rawInsertedCount += count ?? chunk.length;
+    } else {
+      console.error("runPolibrandImport polibrand_mentions insert error:", JSON.stringify(error));
+      if (!firstInsertError) firstInsertError = `${error.message}${error.code ? ` (${error.code})` : ""}`;
+    }
   }
 
   let digitalWatchCreatedCount = 0;
   for (let i = 0; i < watchToInsert.length; i += chunkSize) {
     const chunk = watchToInsert.slice(i, i + chunkSize);
     const { error, count } = await supabase.from("digital_watch_entries").insert(chunk, { count: "exact" });
-    if (!error) digitalWatchCreatedCount += count ?? chunk.length;
+    if (!error) {
+      digitalWatchCreatedCount += count ?? chunk.length;
+    } else {
+      console.error("runPolibrandImport digital_watch_entries insert error:", JSON.stringify(error));
+      if (!firstInsertError) firstInsertError = `${error.message}${error.code ? ` (${error.code})` : ""}`;
+    }
   }
 
   if (rawToInsert.length === 0) {
@@ -188,11 +215,12 @@ export async function runPolibrandImport(
     ok: true,
     message: `ملف "${platform}": تم أرشفة ${rawInsertedCount} إشارة، منها ${digitalWatchCreatedCount} متعلقة بالمرشح/منافس وتزادت فـ"اليقظة الرقمية" تلقائيا${
       duplicateCount > 0 ? ` (تم تجاوز ${duplicateCount} إشارة مكررة/مستوردة من قبل)` : ""
-    }.`,
+    }${firstInsertError ? ` — ⚠️ خطأ فقاعدة البيانات: ${firstInsertError}` : ""}.`,
     totalRows: rawRows.length,
     rawInsertedCount,
     relevantCount,
     digitalWatchCreatedCount,
     duplicateCount,
+    error: firstInsertError,
   };
 }
