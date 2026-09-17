@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { IconTarget } from "@/components/icons";
 import { getStrongholdMapData, type StrongholdRow } from "@/lib/strongholdMap";
 import CommuneChoroplethMap from "@/components/CommuneChoroplethMap";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,7 @@ function Bar({ label, pct, hint }: { label: string; pct: number | null; hint?: s
 function Card({ row }: { row: StrongholdRow }) {
   const tone = scoreTone(row.compositeScore);
   return (
-    <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+    <div data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3 mb-3">
         <div>
           <div className="font-extrabold text-[16px] text-[var(--heading)]">{row.commune.name}</div>
@@ -161,7 +162,8 @@ export default async function StrongholdMapPage() {
         />
       </section>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <ListSearch scopeId="stronghold-list" placeholder="بحث باسم الجماعة..." />
+      <div id="stronghold-list" className="grid md:grid-cols-2 gap-4">
         {rows.map((row) => (
           <Card key={row.commune.id} row={row} />
         ))}

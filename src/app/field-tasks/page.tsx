@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { addFieldTask, updateFieldTaskStatus } from "./actions";
 import { IconTasks } from "@/components/icons";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -187,9 +188,10 @@ export default async function FieldTasksPage({
         </a>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <ListSearch scopeId="field-tasks-list" placeholder="بحث بالعنوان، الفريق، الجماعة، الحي..." />
+      <div id="field-tasks-list" className="grid md:grid-cols-2 gap-4">
         {filteredTasks.map((t: any) => (
-          <div key={t.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+          <div key={t.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
                 <div className="font-extrabold text-[16px] text-[var(--heading)]">{t.title}</div>

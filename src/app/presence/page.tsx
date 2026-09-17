@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addZone, deleteZone, updateZone, addCell, deleteCell } from "./actions";
 import { getCoverageData } from "@/lib/coverage";
 import { IconMap } from "@/components/icons";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -235,13 +236,14 @@ export default async function PresencePage({
         ))}
       </div>
 
-      <div className="space-y-4">
+      <ListSearch scopeId="presence-list" placeholder="بحث باسم الجماعة، الحي، الدوار، المنطقة..." />
+      <div id="presence-list" className="space-y-4">
         {filteredCommunes.map((c) => {
           const communeZones = zonesByCommune.get(c.id) ?? [];
           const communeOffices = communeZones.reduce((s, z) => s + (z.our_offices_count ?? 0), 0);
           const communeCoverage = coverage.byCommune.get(c.id);
           return (
-            <details key={c.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
+            <details key={c.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
               <summary className="cursor-pointer flex items-center justify-between flex-wrap gap-3 p-5 list-none">
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="font-extrabold text-[17px] text-[var(--heading)]">{c.name}</span>

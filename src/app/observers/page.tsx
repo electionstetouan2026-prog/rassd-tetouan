@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addObserver, assignStation, updateObserverStatus } from "./actions";
 import { IconPeople } from "@/components/icons";
 import StationCombobox from "@/components/StationCombobox";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -179,9 +180,10 @@ export default async function ObserversPage({
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <ListSearch scopeId="observers-list" placeholder="بحث بالاسم، الهاتف، المكتب، الجماعة..." />
+      <div id="observers-list" className="grid md:grid-cols-2 gap-4">
         {filteredObservers.map((o: any) => (
-          <div key={o.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+          <div key={o.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <div className="flex items-start gap-3 mb-3">
               <div
                 className="w-11 h-11 rounded-full flex items-center justify-center text-[14px] font-extrabold text-white shrink-0"

@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { addMonitoringReport, updateReportStatus, deleteReport, reviewReport } from "./actions";
 import { IconShield } from "@/components/icons";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -210,9 +211,10 @@ export default async function MonitoringReportsPage({
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <ListSearch scopeId="monitoring-reports-list" placeholder="بحث بالعنوان، النوع، الجماعة، المكتب، المُبلِّغ..." />
+      <div id="monitoring-reports-list" className="grid md:grid-cols-2 gap-4">
         {filteredReports.map((r) => (
-          <div key={r.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+          <div key={r.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
                 <div className="text-sm font-bold text-[var(--muted)]">

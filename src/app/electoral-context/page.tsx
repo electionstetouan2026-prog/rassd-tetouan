@@ -8,6 +8,7 @@ import {
   PPS_LEGISLATIVE_HISTORY,
 } from "@/lib/electoralContext";
 import { addPartyOfficial, deletePartyOfficial } from "./actions";
+import ListSearch from "@/components/ListSearch";
 
 function fmt(n: number | null, suffix = "") {
   return n === null ? "غير متوفر" : `${n.toLocaleString("ar-MA")}${suffix}`;
@@ -239,9 +240,10 @@ export default async function ElectoralContextPage() {
       <div className="grid md:grid-cols-2 gap-5">
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
           <h2 className="font-extrabold text-[var(--heading)] mb-3">مسؤولون/مرشحون حاليون ({currentOfficials.length})</h2>
-          <div className="divide-y divide-[var(--border)]">
+          <ListSearch scopeId="current-officials-list" placeholder="بحث بالاسم، الدور، الجماعة..." />
+          <div id="current-officials-list" className="divide-y divide-[var(--border)]">
             {currentOfficials.map((o) => (
-              <div key={o.id} className="flex items-start justify-between gap-3 py-3">
+              <div key={o.id} data-search-item className="flex items-start justify-between gap-3 py-3">
                 <div>
                   <div className="font-bold text-[var(--text)]">{o.full_name}</div>
                   <div className="text-xs text-[var(--muted)] mt-0.5">
@@ -269,9 +271,10 @@ export default async function ElectoralContextPage() {
 
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
           <h2 className="font-extrabold text-[var(--heading)] mb-3">أسماء تاريخية ({historicalOfficials.length})</h2>
-          <div className="divide-y divide-[var(--border)]">
+          <ListSearch scopeId="historical-officials-list" placeholder="بحث بالاسم، الدور، الجماعة..." />
+          <div id="historical-officials-list" className="divide-y divide-[var(--border)]">
             {historicalOfficials.map((o) => (
-              <div key={o.id} className="flex items-start justify-between gap-3 py-3">
+              <div key={o.id} data-search-item className="flex items-start justify-between gap-3 py-3">
                 <div>
                   <div className="font-bold text-[var(--text)]">{o.full_name}</div>
                   <div className="text-xs text-[var(--muted)] mt-0.5">

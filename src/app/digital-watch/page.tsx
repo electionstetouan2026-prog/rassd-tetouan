@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { addDigitalWatchEntry, updateDigitalWatchStatus } from "./actions";
 import { IconEye } from "@/components/icons";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -225,9 +226,10 @@ export default async function DigitalWatchPage({
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <ListSearch scopeId="digital-watch-list" placeholder="بحث بالمحتوى، المنصة، المصدر، الجماعة..." />
+      <div id="digital-watch-list" className="grid md:grid-cols-2 gap-4">
         {filteredEntries.map((e: any) => (
-          <div key={e.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+          <div key={e.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
                 <div className="text-sm font-bold text-[var(--muted)]">

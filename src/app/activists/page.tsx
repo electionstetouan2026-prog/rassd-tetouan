@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { addActivist, updateActivistStatus, deleteActivist } from "./actions";
 import { IconIdBadge } from "@/components/icons";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -171,9 +172,10 @@ export default async function ActivistsPage({
         ))}
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <ListSearch scopeId="activists-list" placeholder="بحث بالاسم، الهاتف، البريد، الجماعة، الفرع..." />
+      <div id="activists-list" className="grid md:grid-cols-2 gap-4">
         {filtered.map((a: any) => (
-          <div key={a.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+          <div key={a.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <div className="flex items-start gap-3 mb-3">
               <div
                 className="w-11 h-11 rounded-full flex items-center justify-center text-[14px] font-extrabold text-white shrink-0"

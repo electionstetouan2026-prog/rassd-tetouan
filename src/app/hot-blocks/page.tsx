@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { IconFlame } from "@/components/icons";
 import { getHotBlocksData, getStationHotBlocks } from "@/lib/hotblocks";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -76,10 +77,12 @@ export default async function HotBlocksPage({
               {priorityLabel(selected.priorityScore).label} ({selected.priorityScore})
             </span>
           </div>
-          <div className="space-y-2">
+          <ListSearch scopeId="hot-blocks-stations-list" placeholder="بحث باسم المكتب..." />
+          <div id="hot-blocks-stations-list" className="space-y-2">
             {(stations ?? []).map((s) => (
               <div
                 key={s.id}
+                data-search-item
                 className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 flex items-center justify-between gap-3 shadow-sm"
               >
                 <div>
@@ -106,12 +109,15 @@ export default async function HotBlocksPage({
           </div>
         </div>
       ) : (
-        <div className="space-y-2.5">
+        <>
+        <ListSearch scopeId="hot-blocks-communes-list" placeholder="بحث باسم الجماعة..." />
+        <div id="hot-blocks-communes-list" className="space-y-2.5">
           {rows.map((r) => {
             const p = priorityLabel(r.priorityScore);
             return (
               <a
                 key={r.commune.id}
+                data-search-item
                 href={`/hot-blocks?commune=${r.commune.id}`}
                 className="block rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm hover:shadow-md transition"
               >
@@ -134,6 +140,7 @@ export default async function HotBlocksPage({
             );
           })}
         </div>
+        </>
       )}
     </PageShell>
   );

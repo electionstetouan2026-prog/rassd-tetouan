@@ -12,6 +12,7 @@ import {
 } from "@/lib/voterContact";
 import { setVoterContactStatus } from "./actions";
 import { addVolunteer } from "@/app/volunteers/actions";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -69,11 +70,12 @@ export default async function VoterContactPage({
 
         <div className="text-sm text-[var(--muted)] mb-3">{total.toLocaleString("ar")} ناخب فهاد الفلترة</div>
 
-        <div className="space-y-2">
+        <ListSearch scopeId="station-voters-list" placeholder="بحث فهاد الصفحة فقط (الحروف الأولى، الرقم، من تواصل)..." />
+        <div id="station-voters-list" className="space-y-2">
           {voters.map((v) => {
             const meta = statusMeta(v.status);
             return (
-              <details key={v.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm">
+              <details key={v.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm">
                 <summary className="cursor-pointer flex items-center justify-between gap-3 p-4 list-none">
                   <div className="flex items-center gap-3">
                     <span className="font-extrabold text-[var(--heading)]">{v.initials}</span>
@@ -167,10 +169,12 @@ export default async function VoterContactPage({
         <a href="/voter-contact" className="text-sm text-[var(--brand-blue)] font-bold underline mb-4 inline-block">
           ← رجوع لكل الجماعات
         </a>
-        <div className="space-y-2">
+        <ListSearch scopeId="voter-contact-stations-list" placeholder="بحث باسم المكتب..." />
+        <div id="voter-contact-stations-list" className="space-y-2">
           {stations.map((s) => (
             <a
               key={s.id}
+              data-search-item
               href={`/voter-contact?commune=${params.commune}&station=${s.id}`}
               className="block rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm hover:shadow-md transition"
             >
@@ -227,27 +231,31 @@ export default async function VoterContactPage({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-        <div className="space-y-2">
-          {rows.map((r) => (
-            <a
-              key={r.commune.id}
-              href={`/voter-contact?commune=${r.commune.id}`}
-              className="block rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm hover:shadow-md transition"
-            >
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div>
-                  <div className="font-extrabold text-[16px] text-[var(--heading)]">{r.commune.name}</div>
-                  <div className="text-sm text-[var(--muted)] mt-0.5">{r.totalVoters.toLocaleString("ar")} ناخب</div>
+        <div>
+          <ListSearch scopeId="voter-contact-communes-list" placeholder="بحث باسم الجماعة..." />
+          <div id="voter-contact-communes-list" className="space-y-2">
+            {rows.map((r) => (
+              <a
+                key={r.commune.id}
+                data-search-item
+                href={`/voter-contact?commune=${r.commune.id}`}
+                className="block rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm hover:shadow-md transition"
+              >
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="font-extrabold text-[16px] text-[var(--heading)]">{r.commune.name}</div>
+                    <div className="text-sm text-[var(--muted)] mt-0.5">{r.totalVoters.toLocaleString("ar")} ناخب</div>
+                  </div>
+                  <span
+                    className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
+                    style={{ background: r.contactedCount > 0 ? "var(--brand-blue)" : "#9ca3af" }}
+                  >
+                    {r.contactedCount.toLocaleString("ar")} تم التواصل ({pct(r.contactedCount, r.totalVoters)})
+                  </span>
                 </div>
-                <span
-                  className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
-                  style={{ background: r.contactedCount > 0 ? "var(--brand-blue)" : "#9ca3af" }}
-                >
-                  {r.contactedCount.toLocaleString("ar")} تم التواصل ({pct(r.contactedCount, r.totalVoters)})
-                </span>
-              </div>
-            </a>
-          ))}
+              </a>
+            ))}
+          </div>
         </div>
 
         <aside className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm h-fit">

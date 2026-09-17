@@ -5,6 +5,7 @@ import { getRankingData } from "@/lib/ranking";
 import { isGeminiConfigured } from "@/lib/ai/gemini";
 import { generateRankingSummary } from "./actions";
 import AiSummaryBox from "./AiSummaryBox";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -94,9 +95,10 @@ export default async function RankingPage({
         </a>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <ListSearch scopeId="ranking-list" placeholder="بحث باسم الجماعة..." />
+      <div id="ranking-list" className="grid md:grid-cols-2 gap-4">
         {visibleRows.map((r) => (
-          <div key={r.commune.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
+          <div key={r.commune.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3 mb-3">
               <div>
                 <div className="font-extrabold text-[16px] text-[var(--heading)]">{r.commune.name}</div>

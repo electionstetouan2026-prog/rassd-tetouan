@@ -2,6 +2,7 @@ import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { updatePollingStationLocation } from "./actions";
 import { IconBuilding } from "@/components/icons";
+import ListSearch from "@/components/ListSearch";
 
 export const dynamic = "force-dynamic";
 
@@ -128,21 +129,22 @@ export default async function PollingStationsPage({
         ))}
       </div>
 
-      <div className="space-y-4">
+      <ListSearch scopeId="polling-stations-list" placeholder="بحث باسم المكتب، المنطقة، أو الجماعة..." />
+      <div id="polling-stations-list" className="space-y-4">
         {filteredCommunes.map((c) => {
           const communeStations = (stationsByCommune.get(c.id) ?? []).filter(
             (s) => locationFilter === "all" || s.location_confirmed === locationFilter
           );
           if (communeStations.length === 0) return null;
           return (
-            <details key={c.id} className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
+            <details key={c.id} data-search-group className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
               <summary className="cursor-pointer flex items-center justify-between flex-wrap gap-3 p-5 list-none">
                 <span className="font-extrabold text-[17px] text-[var(--heading)]">{c.name}</span>
                 <span className="text-sm text-[var(--muted)]">{communeStations.length} مكتب</span>
               </summary>
               <div className="px-5 pb-5 space-y-2 border-t border-[var(--border)] pt-4">
                 {communeStations.map((s) => (
-                  <details key={s.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+                  <details key={s.id} data-search-item className="rounded-lg border border-[var(--border)] bg-[var(--bg)]">
                     <summary className="cursor-pointer flex items-center justify-between gap-3 p-3.5 list-none">
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="font-bold text-[var(--text)]">
