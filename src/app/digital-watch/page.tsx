@@ -37,11 +37,12 @@ const SENTIMENT_LABEL: Record<string, string> = {
 export default async function DigitalWatchPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; priority?: string }>;
+  searchParams: Promise<{ status?: string; priority?: string; platform?: string }>;
 }) {
   const params = await searchParams;
   const statusFilter = params.status ?? "all";
   const priorityFilter = params.priority ?? "all";
+  const platformFilter = params.platform ?? "all";
 
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
@@ -63,12 +64,17 @@ export default async function DigitalWatchPage({
   const filteredEntries = entries.filter((e: any) => {
     if (statusFilter !== "all" && e.status !== statusFilter) return false;
     if (priorityFilter !== "all" && e.priority !== priorityFilter) return false;
+    if (platformFilter !== "all" && e.platform !== platformFilter) return false;
     return true;
   });
 
   const statusCounts: Record<string, number> = { all: entries.length };
   for (const s of STATUS_TABS) if (s !== "all") statusCounts[s] = 0;
   for (const e of entries) statusCounts[e.status] = (statusCounts[e.status] ?? 0) + 1;
+
+  const platformCounts: Record<string, number> = { all: entries.length };
+  for (const p of PLATFORMS) platformCounts[p] = 0;
+  for (const e of entries) platformCounts[e.platform] = (platformCounts[e.platform] ?? 0) + 1;
 
   const todayCount = entries.filter((e: any) => e.entry_date === today).length;
   const urgentOpenCount = entries.filter(
@@ -194,10 +200,36 @@ export default async function DigitalWatchPage({
       </section>
 
       <div className="flex gap-2 flex-wrap mb-3">
+        <a
+          href={`/digital-watch?status=${statusFilter}&priority=${priorityFilter}&platform=all`}
+          className={`text-sm rounded-full px-4 py-2 border font-bold shadow-sm ${
+            platformFilter === "all"
+              ? "bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]"
+              : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
+          }`}
+        >
+          كل المنصات ({platformCounts.all})
+        </a>
+        {PLATFORMS.map((p) => (
+          <a
+            key={p}
+            href={`/digital-watch?status=${statusFilter}&priority=${priorityFilter}&platform=${encodeURIComponent(p)}`}
+            className={`text-sm rounded-full px-4 py-2 border font-bold shadow-sm ${
+              platformFilter === p
+                ? "bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]"
+                : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
+            }`}
+          >
+            {p} ({platformCounts[p] ?? 0})
+          </a>
+        ))}
+      </div>
+
+      <div className="flex gap-2 flex-wrap mb-3">
         {STATUS_TABS.map((tab) => (
           <a
             key={tab}
-            href={`/digital-watch?status=${tab}&priority=${priorityFilter}`}
+            href={`/digital-watch?status=${tab}&priority=${priorityFilter}&platform=${platformFilter}`}
             className={`text-sm rounded-full px-4 py-2 border font-bold shadow-sm ${
               statusFilter === tab
                 ? "bg-[var(--brand-blue)] text-white border-[var(--brand-blue)]"
@@ -210,7 +242,7 @@ export default async function DigitalWatchPage({
       </div>
       <div className="flex gap-2 flex-wrap mb-6">
         <a
-          href={`/digital-watch?status=${statusFilter}&priority=all`}
+          href={`/digital-watch?status=${statusFilter}&priority=all&platform=${platformFilter}`}
           className={`text-sm rounded-full px-3.5 py-1.5 border font-semibold ${
             priorityFilter === "all"
               ? "bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]"
@@ -222,7 +254,7 @@ export default async function DigitalWatchPage({
         {PRIORITIES.map((p) => (
           <a
             key={p}
-            href={`/digital-watch?status=${statusFilter}&priority=${encodeURIComponent(p)}`}
+            href={`/digital-watch?status=${statusFilter}&priority=${encodeURIComponent(p)}&platform=${platformFilter}`}
             className={`text-sm rounded-full px-3.5 py-1.5 border font-semibold ${
               priorityFilter === p
                 ? "bg-[var(--brand-navy)] text-white border-[var(--brand-navy)]"

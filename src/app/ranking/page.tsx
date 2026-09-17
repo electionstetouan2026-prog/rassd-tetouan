@@ -71,9 +71,21 @@ export default async function RankingPage({
           </Link>
         </div>
         <p className="text-sm text-[var(--muted)] mb-4">
-          من كيهيمن على الفضاء الرقمي على مستوى الدائرة كاملة (آخر {digitalRanking.windowDays} يوم) — حجم الإشارات
-          المستوردة من بوليبراند لكل اسم، نحن مقابل كل منافس مسمّى. تقدير مبني على حجم التغطية الإعلامية المرصودة
-          فقط، ماشي استطلاع رأي علمي، وماشي بديل عن الحضور الميداني أسفله.
+          من كيهيمن على الفضاء الرقمي على مستوى الدائرة كاملة (آخر {digitalRanking.windowDays} يوم) — ترتيب مبني
+          على "تأثير مقدَّر" (تفاعل + انتشار المصدر، محسوب بالذكاء الاصطناعي) ماشي مجرد عدد الإشارات الخام، نحن
+          مقابل كل منافس (بما فيهم أسماء مكتشفة تلقائيا ماكانتش متوقعة). تقدير اجتهادي، ماشي استطلاع رأي علمي، وماشي
+          بديل عن الحضور الميداني أسفله.
+          {digitalRanking.analyzedShare < 1 && (
+            <>
+              {" "}
+              ({Math.round(digitalRanking.analyzedShare * 100)}% من إشارات هاد الفترة دار عليها تحليل AI فعليا،
+              الباقي بوزن افتراضي مؤقت —{" "}
+              <Link href="/digital-watch/import-polibrand" className="underline">
+                تابع التحليل من هنا
+              </Link>
+              .)
+            </>
+          )}
         </p>
         {digitalRanking.hasData ? (
           <div className="space-y-2">
@@ -88,6 +100,7 @@ export default async function RankingPage({
               >
                 <span className="font-bold">
                   {i + 1}. {r.name}
+                  {r.isNewlyDiscovered && <span className="mr-2 text-xs opacity-80">🆕 مكتشف تلقائيا</span>}
                   {r.trend && <span className="mr-2 opacity-80">{TREND_ICON[r.trend]}</span>}
                 </span>
                 <span className="flex items-center gap-3 font-semibold">
@@ -98,7 +111,8 @@ export default async function RankingPage({
                     {"  "}
                     {SENTIMENT_ICON["سلبي"]} {r.sentimentCounts["سلبي"]}
                   </span>
-                  <span className="font-extrabold">{r.currentCount} إشارة</span>
+                  <span className="text-xs opacity-80">{r.currentCount} إشارة</span>
+                  <span className="font-extrabold">تأثير: {r.estimatedInfluence}</span>
                 </span>
               </div>
             ))}

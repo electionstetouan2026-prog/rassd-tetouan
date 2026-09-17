@@ -476,6 +476,22 @@ create index if not exists polibrand_mentions_platform_idx on public.polibrand_m
 create unique index if not exists polibrand_mentions_platform_url_idx
   on public.polibrand_mentions (platform, content_url) where content_url is not null;
 
+-- تحليل الذكاء الاصطناعي (طلب علي، 17 شتنبر 2026): matched_entities
+-- أعلاه محدود بلائحة المنافسين المعروفين مسبقا فـ polibrandEntities.ts —
+-- ai_entities نتيجة قراءة مفتوحة لنص الإشارة (بلا تحديد بلائحة سلفا)
+-- عبر src/lib/ai/mentionAnalysis.ts (Anthropic ثم Gemini ثم OpenAI،
+-- أول واحد يجاوب)، كتكتشف منافسين ماشي متوقعين. ai_influence_score
+-- (0-100) تقدير AI لقوة/انتشار هاد الإشارة بالضبط (تفاعل + بروز
+-- المصدر) — يُستعمل فالترتيب الرقمي التنافسي بدل الاعتماد على مجرد
+-- عدد الإشارات الخام. ai_analyzed_at فارغ = لسا مادار عليها التحليل
+-- (معالجة تدريجية بدفعات، راجع runMentionAiAnalysisBatch — الدفعة
+-- الواحدة محدودة تفاديا لتجاوز الحد الزمني لدوال Vercel).
+alter table public.polibrand_mentions add column if not exists ai_entities text;
+alter table public.polibrand_mentions add column if not exists ai_influence_score numeric;
+alter table public.polibrand_mentions add column if not exists ai_analyzed_at timestamptz;
+create index if not exists polibrand_mentions_ai_pending_idx
+  on public.polibrand_mentions (entry_date desc) where ai_analyzed_at is null;
+
 -- ============================================================
 -- RLS: تفعيل + سياسات (بلا recursion — عبر current_user_role()/is_editor_or_admin())
 -- ============================================================

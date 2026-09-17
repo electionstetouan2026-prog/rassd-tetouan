@@ -1,6 +1,7 @@
 import PageShell from "@/components/PageShell";
 import { IconUpload } from "@/components/icons";
 import PolibrandImportForm from "./PolibrandImportForm";
+import AiAnalysisRunner from "./AiAnalysisRunner";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,10 @@ export default function ImportPolibrandPage() {
       </div>
 
       <PolibrandImportForm />
+
+      <div className="mt-6">
+        <AiAnalysisRunner />
+      </div>
     </PageShell>
   );
 }
