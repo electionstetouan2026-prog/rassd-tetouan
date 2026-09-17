@@ -1,12 +1,17 @@
 import PageShell from "@/components/PageShell";
 import { IconUpload } from "@/components/icons";
 import ImportForm from "./ImportForm";
+import NeighborhoodCellsImportForm from "./NeighborhoodCellsImportForm";
 import { IMPORT_TARGETS } from "@/lib/importEngine";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-export default function ImportPage() {
+export default async function ImportPage() {
   const targets = Object.values(IMPORT_TARGETS);
+  const supabase = await createClient();
+  const { data: communesRaw } = await supabase.from("communes").select("id, name").order("name");
+  const communes = communesRaw ?? [];
 
   return (
     <PageShell
@@ -49,6 +54,10 @@ export default function ImportPage() {
       </div>
 
       <ImportForm />
+
+      <div className="mt-10 pt-6 border-t border-[var(--border)]">
+        <NeighborhoodCellsImportForm communes={communes} />
+      </div>
     </PageShell>
   );
 }
