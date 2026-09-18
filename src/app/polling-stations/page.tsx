@@ -24,6 +24,24 @@ type Station = {
   location_confirmed: string;
 };
 
+// كيجمع مكاتب التصويت حسب المدرسة (center_name) باش نعرضو المدرسة
+// كواحدة قابلة للفتح، وفداخلها كل المكاتب التابعة ليها
+function groupBySchool(stations: Station[]): { name: string; stations: Station[] }[] {
+  const map = new Map<string, Station[]>();
+  for (const s of stations) {
+    const key = s.center_name.trim();
+    const arr = map.get(key) ?? [];
+    arr.push(s);
+    map.set(key, arr);
+  }
+  return Array.from(map.entries())
+    .map(([name, stations]) => ({
+      name,
+      stations: stations.sort((a, b) => (a.sub_office_number ?? 0) - (b.sub_office_number ?? 0)),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, "ar"));
+}
+
 export default async function PollingStationsPage({
   searchParams,
 }: {
@@ -143,7 +161,31 @@ export default async function PollingStationsPage({
                 <span className="text-sm text-[var(--muted)]">{communeStations.length} مكتب</span>
               </summary>
               <div className="px-5 pb-5 space-y-2 border-t border-[var(--border)] pt-4">
-                {communeStations.map((s) => (
+                {groupBySchool(communeStations).map((school) => {
+                  const schoolTotalVoters = school.stations.reduce((sum, s) => sum + (voterCounts.get(s.id) ?? 0), 0);
+                  const schoolCoveredVoters = school.stations
+                    .filter((s) => confirmedObserverStations.has(s.id))
+                    .reduce((sum, s) => sum + (voterCounts.get(s.id) ?? 0), 0);
+                  const schoolCoveragePct = schoolTotalVoters > 0 ? Math.round((schoolCoveredVoters / schoolTotalVoters) * 100) : 0;
+                  return (
+                    <details key={school.name} data-search-group className="rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+                      <summary className="cursor-pointer flex items-center justify-between gap-3 p-3.5 list-none flex-wrap">
+                        <div className="flex items-center gap-3 flex-wrap">
+                          <span className="font-extrabold text-[var(--heading)]">{school.name}</span>
+                          <span className="text-sm text-[var(--muted)]">{school.stations.length} مكتب</span>
+                          <span className="text-sm text-[var(--muted)]">
+                            {schoolTotalVoters.toLocaleString("ar")} ناخب إجمالي
+                          </span>
+                        </div>
+                        <span
+                          className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
+                          style={{ background: schoolCoveredVoters > 0 ? "var(--severity-neutral)" : "#9ca3af" }}
+                        >
+                          {schoolCoveredVoters.toLocaleString("ar")} ناخب عندي ({schoolCoveragePct}%)
+                        </span>
+                      </summary>
+                      <div className="px-3.5 pb-3.5 space-y-2">
+                        {school.stations.map((s) => (
                   <details key={s.id} data-search-item className="rounded-lg border border-[var(--border)] bg-[var(--bg)]">
                     <summary className="cursor-pointer flex items-center justify-between gap-3 p-3.5 list-none">
                       <div className="flex items-center gap-3 flex-wrap">
@@ -217,6 +259,10 @@ export default async function PollingStationsPage({
                     )}
                   </details>
                 ))}
+                      </div>
+                    </details>
+                  );
+                })}
               </div>
             </details>
           );
