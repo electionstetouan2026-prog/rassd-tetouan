@@ -1,6 +1,6 @@
 import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
-import { addObserver, assignStation, updateObserverStatus } from "./actions";
+import { addObserver, assignStation, updateObserverStatus, updateObserverInfo } from "./actions";
 import { IconPeople } from "@/components/icons";
 import StationCombobox from "@/components/StationCombobox";
 import ListSearch from "@/components/ListSearch";
@@ -210,6 +210,37 @@ export default async function ObserversPage({
                 : "بلا مكتب مسند"}
             </div>
             {o.notes && <p className="text-sm text-[var(--muted)] mb-2">{o.notes}</p>}
+
+            <details className="mb-2">
+              <summary className="cursor-pointer text-xs font-bold text-[var(--brand-blue)]">
+                تعديل الاسم/الهاتف/الملاحظة
+              </summary>
+              <form action={updateObserverInfo.bind(null, o.id)} className="grid grid-cols-2 gap-2 mt-2">
+                <input
+                  name="full_name"
+                  defaultValue={o.full_name}
+                  required
+                  placeholder="الاسم الكامل"
+                  className="col-span-2 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]"
+                />
+                <input
+                  name="phone"
+                  defaultValue={o.phone ?? ""}
+                  placeholder="الهاتف"
+                  className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]"
+                />
+                <input
+                  name="notes"
+                  defaultValue={o.notes ?? ""}
+                  placeholder="ملاحظة"
+                  className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]"
+                />
+                <button className="col-span-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-3.5 py-1.5 text-sm hover:bg-[var(--brand-blue-hover)] transition">
+                  حفظ
+                </button>
+              </form>
+            </details>
+
             <div className="flex gap-2 flex-wrap items-center pt-3 border-t border-[var(--border)] mt-3">
               {STATUS_TABS.filter((s) => s !== "all").map((s) => (
                 <form key={s} action={updateObserverStatus.bind(null, o.id, s)}>

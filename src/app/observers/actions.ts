@@ -36,6 +36,21 @@ export async function updateObserverStatus(id: string, status: string) {
   revalidatePath("/observers");
 }
 
+export async function updateObserverInfo(id: string, formData: FormData) {
+  "use server";
+  const supabase = await createClient();
+  const full_name = String(formData.get("full_name") ?? "").trim();
+  const phone = String(formData.get("phone") ?? "").trim() || null;
+  const notes = String(formData.get("notes") ?? "").trim() || null;
+  if (!full_name) return;
+
+  await supabase
+    .from("observers")
+    .update({ full_name, phone, notes, updated_at: new Date().toISOString() })
+    .eq("id", id);
+  revalidatePath("/observers");
+}
+
 export async function assignStation(id: string, formData: FormData) {
   const supabase = await createClient();
   const polling_station_id = String(formData.get("polling_station_id") ?? "").trim() || null;
