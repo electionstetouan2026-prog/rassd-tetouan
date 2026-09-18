@@ -70,12 +70,29 @@ export default function StationCombobox({
     }
   }
 
+  // تطبيع بلا حساسية للهمزات/التاء المربوطة، وتقسيم البحث لكلمات — كل
+  // كلمة خاصها تكون موجودة فمكان ما فاللابل (بلا شرط الترتيب)، باش
+  // "مكتب 2 مدرسة المورد" يلقى نفس النتيجة ديال "مدرسة المورد مكتب 2"
+  function normalize(v: string): string {
+    return v
+      .replace(/[إأآا]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ة/g, "ه")
+      .toLowerCase();
+  }
+
   const q = query.trim();
+  const queryTokens = normalize(q).split(/\s+/).filter(Boolean);
   const results = !stations
     ? []
-    : q === ""
+    : queryTokens.length === 0
     ? stations.slice(0, 50)
-    : stations.filter((s) => s.label.includes(q)).slice(0, 50);
+    : stations
+        .filter((s) => {
+          const normalizedLabel = normalize(s.label);
+          return queryTokens.every((t) => normalizedLabel.includes(t));
+        })
+        .slice(0, 50);
 
   return (
     <div ref={boxRef} className={`relative ${className ?? ""}`}>

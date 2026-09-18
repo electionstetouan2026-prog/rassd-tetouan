@@ -10,19 +10,29 @@ import { createClient } from "@/lib/supabase/server";
 export async function GET() {
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("polling_stations")
-    .select("id, center_name, sub_office_number, is_mock, commune_id, communes(name)")
-    .order("center_name");
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // نجيبو الصفحات كاملة — Supabase/PostgREST كيحد كل طلب بـ1000 صف
+  // بغض النظر عن .order() وحدو، وعدد مكاتب التصويت غادي يكبر مع الوقت
+  const pageSize = 1000;
+  const data: any[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data: page, error } = await supabase
+      .from("polling_stations")
+      .select("id, center_name, sub_office_number, is_mock, commune_id, communes(name)")
+      .order("center_name")
+      .range(from, from + pageSize - 1);
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    data.push(...(page ?? []));
+    if (!page || page.length < pageSize) break;
   }
 
-  const stations = (data ?? []).map((s: any) => ({
+  const stations = data.map((s: any) => ({
     id: s.id as string,
-    label: `${s.communes?.name ?? "?"} — ${s.center_name}${
-      s.sub_office_number ? ` (فرعي ${s.sub_office_number})` : ""
+    // نفس صيغة العرض المستعملة فصفحة /polling-stations ("مكتب N — الاسم")
+    // باش البحث هنا يطابق كيفما كتبها المستخدم هناك بالضبط
+    label: `${s.communes?.name ?? "?"} — ${s.sub_office_number ? `مكتب ${s.sub_office_number} — ` : ""}${
+      s.center_name
     }${s.is_mock ? " · افتراضي" : ""}`,
   }));
 
