@@ -13,6 +13,7 @@ import {
 import { setVoterContactStatus } from "./actions";
 import { addVolunteer } from "@/app/volunteers/actions";
 import ListSearch from "@/components/ListSearch";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,15 @@ export default async function VoterContactPage({
 }) {
   const params = await searchParams;
   const supabase = await createClient();
+  const { dict, locale } = await getDictionary();
+  const numberLocale = locale === "fr" ? "fr-FR" : "ar";
+  const STATUS_LABEL: Record<string, string> = {
+    contacted: dict.voterContact.statusContacted,
+    supporter: dict.voterContact.statusSupporter,
+    undecided: dict.voterContact.statusUndecided,
+    opponent: dict.voterContact.statusOpponent,
+    unreachable: dict.voterContact.statusUnreachable,
+  };
 
   // ------- مستوى 2: داخل مكتب تصويت محدد -------
   if (params.commune && params.station) {
@@ -41,17 +51,17 @@ export default async function VoterContactPage({
 
     return (
       <PageShell
-        title="متابعة الفريق الميداني"
-        subtitle="سجّل حالة التواصل مع كل ناخب داخل مكتب التصويت — تم التواصل، مؤيد، متردد، معارض، أو تعذر الوصول."
+        title={dict.voterContact.title}
+        subtitle={dict.voterContact.subtitleStationLevel}
         icon={<IconPhone />}
       >
         <a href={`/voter-contact?commune=${params.commune}`} className="text-sm text-[var(--brand-blue)] font-bold underline mb-4 inline-block">
-          ← رجوع لمكاتب التصويت
+          {dict.voterContact.backToStations}
         </a>
 
         <div className="flex gap-2 flex-wrap mb-5">
           {["all", "not_contacted", ...STATUS_OPTIONS.map((s) => s.value)].map((s) => {
-            const label = s === "all" ? "الكل" : s === "not_contacted" ? "غير متواصل بعد" : statusMeta(s)?.label ?? s;
+            const label = s === "all" ? dict.common.all : s === "not_contacted" ? dict.voterContact.notContactedYet : STATUS_LABEL[s] ?? s;
             return (
               <a
                 key={s}
@@ -68,9 +78,9 @@ export default async function VoterContactPage({
           })}
         </div>
 
-        <div className="text-sm text-[var(--muted)] mb-3">{total.toLocaleString("ar")} ناخب فهاد الفلترة</div>
+        <div className="text-sm text-[var(--muted)] mb-3">{total.toLocaleString(numberLocale)} {dict.voterContact.voterInFilterSuffix}</div>
 
-        <ListSearch scopeId="station-voters-list" placeholder="بحث فهاد الصفحة فقط (الحروف الأولى، الرقم، من تواصل)..." />
+        <ListSearch scopeId="station-voters-list" placeholder={dict.voterContact.searchInPagePlaceholder} />
         <div id="station-voters-list" className="space-y-2">
           {voters.map((v) => {
             const meta = statusMeta(v.status);
@@ -86,7 +96,7 @@ export default async function VoterContactPage({
                     className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
                     style={{ background: meta?.color ?? "#9ca3af" }}
                   >
-                    {meta?.label ?? "غير متواصل بعد"}
+                    {(meta && STATUS_LABEL[meta.value]) ?? dict.voterContact.notContactedYet}
                   </span>
                 </summary>
                 <form action={setVoterContactStatus} className="px-4 pb-4 grid grid-cols-2 md:grid-cols-5 gap-2 text-sm">
@@ -97,38 +107,38 @@ export default async function VoterContactPage({
                   <select name="status" defaultValue={v.status ?? "contacted"} className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--bg)]">
                     {STATUS_OPTIONS.map((s) => (
                       <option key={s.value} value={s.value}>
-                        {s.label}
+                        {STATUS_LABEL[s.value] ?? s.label}
                       </option>
                     ))}
                   </select>
                   <select name="channel" defaultValue={v.channel ?? ""} className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--bg)]">
-                    <option value="">القناة (اختياري)</option>
-                    <option value="visit">زيارة</option>
-                    <option value="phone_call">اتصال هاتفي</option>
-                    <option value="other">أخرى</option>
+                    <option value="">{dict.voterContact.channelPlaceholder}</option>
+                    <option value="visit">{dict.voterContact.channelVisit}</option>
+                    <option value="phone_call">{dict.voterContact.channelPhoneCall}</option>
+                    <option value="other">{dict.voterContact.channelOther}</option>
                   </select>
                   <select name="contacted_by" defaultValue={v.contactedBy ?? ""} className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--bg)]">
-                    <option value="">من تواصل؟ (اختياري)</option>
+                    <option value="">{dict.voterContact.contactedByPlaceholder}</option>
                     {fieldTeam.map((m) => (
                       <option key={`${m.type}-${m.id}`} value={m.name}>
-                        {m.name} {m.type === "activist" ? "(مناضل)" : "(متطوع)"}
+                        {m.name} {m.type === "activist" ? dict.voterContact.activistSuffix : dict.voterContact.volunteerSuffix}
                       </option>
                     ))}
                   </select>
                   <input
                     name="notes"
                     defaultValue={v.notes ?? ""}
-                    placeholder="ملاحظة (اختياري)"
+                    placeholder={dict.voterContact.notesPlaceholder}
                     className="col-span-2 md:col-span-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--bg)]"
                   />
                   <button className="rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-1.5 text-sm">
-                    حفظ
+                    {dict.voterContact.saveButton}
                   </button>
                 </form>
               </details>
             );
           })}
-          {voters.length === 0 && <p className="text-[15px] text-[var(--muted)]">لا يوجد ناخبون فهاد الفلترة.</p>}
+          {voters.length === 0 && <p className="text-[15px] text-[var(--muted)]">{dict.voterContact.noVotersInFilter}</p>}
         </div>
 
         {totalPages > 1 && (
@@ -144,7 +154,7 @@ export default async function VoterContactPage({
                       p === page ? "bg-[var(--brand-blue)] text-white" : "border border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
                     }`}
                   >
-                    {p.toLocaleString("ar")}
+                    {p.toLocaleString(numberLocale)}
                   </a>
                 </span>
               ))}
@@ -162,14 +172,14 @@ export default async function VoterContactPage({
 
     return (
       <PageShell
-        title="متابعة الفريق الميداني"
-        subtitle={`مكاتب التصويت — ${commune?.name ?? ""}`}
+        title={dict.voterContact.title}
+        subtitle={`${dict.voterContact.stationsForCommunePrefix} ${commune?.name ?? ""}`}
         icon={<IconPhone />}
       >
         <a href="/voter-contact" className="text-sm text-[var(--brand-blue)] font-bold underline mb-4 inline-block">
-          ← رجوع لكل الجماعات
+          {dict.voterContact.backToAllCommunes}
         </a>
-        <ListSearch scopeId="voter-contact-stations-list" placeholder="بحث باسم المكتب..." />
+        <ListSearch scopeId="voter-contact-stations-list" placeholder={dict.voterContact.searchStationsPlaceholder} />
         <div id="voter-contact-stations-list" className="space-y-2">
           {stations.map((s) => (
             <a
@@ -181,21 +191,21 @@ export default async function VoterContactPage({
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="font-extrabold text-[16px] text-[var(--heading)]">
-                    {s.subOfficeNumber ? `مكتب ${s.subOfficeNumber} — ` : ""}
+                    {s.subOfficeNumber ? `${dict.voterContact.officePrefix} ${s.subOfficeNumber} — ` : ""}
                     {s.centerName}
                   </div>
-                  <div className="text-sm text-[var(--muted)] mt-0.5">{s.totalVoters.toLocaleString("ar")} ناخب</div>
+                  <div className="text-sm text-[var(--muted)] mt-0.5">{s.totalVoters.toLocaleString(numberLocale)} {dict.voterContact.votersUnit}</div>
                 </div>
                 <span
                   className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
                   style={{ background: s.contactedCount > 0 ? "var(--brand-blue)" : "#9ca3af" }}
                 >
-                  {s.contactedCount.toLocaleString("ar")} تم التواصل معاهم ({pct(s.contactedCount, s.totalVoters)})
+                  {s.contactedCount.toLocaleString(numberLocale)} {dict.voterContact.contactedWithThemSuffix} ({pct(s.contactedCount, s.totalVoters)})
                 </span>
               </div>
             </a>
           ))}
-          {stations.length === 0 && <p className="text-[15px] text-[var(--muted)]">لا توجد مكاتب تصويت حقيقية مُدخلة لهاد الجماعة.</p>}
+          {stations.length === 0 && <p className="text-[15px] text-[var(--muted)]">{dict.voterContact.noRealStationsForCommune}</p>}
         </div>
       </PageShell>
     );
@@ -207,32 +217,32 @@ export default async function VoterContactPage({
 
   return (
     <PageShell
-      title="متابعة الفريق الميداني"
-      subtitle="حالة التواصل مع الناخبين، جماعة بجماعة — مبنية على قاعدة الناخبين (T-076)، بلا أسماء كاملة، فقط الحروف الأولى ومكتب التصويت."
+      title={dict.voterContact.title}
+      subtitle={dict.voterContact.subtitleAllCommunes}
       icon={<IconPhone />}
     >
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <div className="text-sm font-bold text-[var(--muted)]">إجمالي الناخبين</div>
-          <div className="text-[28px] font-extrabold text-[var(--heading)]">{totals.totalVoters.toLocaleString("ar")}</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.voterContact.statTotalVoters}</div>
+          <div className="text-[28px] font-extrabold text-[var(--heading)]">{totals.totalVoters.toLocaleString(numberLocale)}</div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <div className="text-sm font-bold text-[var(--muted)]">تم التواصل معاهم ({pct(totals.contactedCount, totals.totalVoters)})</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.voterContact.contactedWithThemSuffix} ({pct(totals.contactedCount, totals.totalVoters)})</div>
           <div className="text-[28px] font-extrabold" style={{ color: "var(--brand-blue)" }}>
-            {totals.contactedCount.toLocaleString("ar")}
+            {totals.contactedCount.toLocaleString(numberLocale)}
           </div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <div className="text-sm font-bold text-[var(--muted)]">مؤيدون مسجّلون</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.voterContact.statSupportersRegistered}</div>
           <div className="text-[28px] font-extrabold" style={{ color: "var(--severity-neutral)" }}>
-            {totals.supporterCount.toLocaleString("ar")}
+            {totals.supporterCount.toLocaleString(numberLocale)}
           </div>
         </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div>
-          <ListSearch scopeId="voter-contact-communes-list" placeholder="بحث باسم الجماعة..." />
+          <ListSearch scopeId="voter-contact-communes-list" placeholder={dict.voterContact.searchCommunesPlaceholder} />
           <div id="voter-contact-communes-list" className="space-y-2">
             {rows.map((r) => (
               <a
@@ -244,13 +254,13 @@ export default async function VoterContactPage({
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                   <div>
                     <div className="font-extrabold text-[16px] text-[var(--heading)]">{r.commune.name}</div>
-                    <div className="text-sm text-[var(--muted)] mt-0.5">{r.totalVoters.toLocaleString("ar")} ناخب</div>
+                    <div className="text-sm text-[var(--muted)] mt-0.5">{r.totalVoters.toLocaleString(numberLocale)} {dict.voterContact.votersUnit}</div>
                   </div>
                   <span
                     className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
                     style={{ background: r.contactedCount > 0 ? "var(--brand-blue)" : "#9ca3af" }}
                   >
-                    {r.contactedCount.toLocaleString("ar")} تم التواصل ({pct(r.contactedCount, r.totalVoters)})
+                    {r.contactedCount.toLocaleString(numberLocale)} {dict.voterContact.contactedSuffix} ({pct(r.contactedCount, r.totalVoters)})
                   </span>
                 </div>
               </a>
@@ -259,30 +269,32 @@ export default async function VoterContactPage({
         </div>
 
         <aside className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm h-fit">
-          <h2 className="font-extrabold text-[var(--heading)] mb-1">الفريق الميداني</h2>
+          <h2 className="font-extrabold text-[var(--heading)] mb-1">{dict.voterContact.fieldTeamTitle}</h2>
           <p className="text-xs text-[var(--muted)] mb-3">
-            المتطوعون والمناضلون النشيطون، مع عدد مرات التواصل المسجلة باسم كل واحد. لإضافة مناضل بدل متطوع، أو تعديل حالة عضو، استعمل صفحتي
-            {" "}<a href="/volunteers" className="underline">المتطوعون</a> و<a href="/activists" className="underline">المناضلون</a>.
+            {dict.voterContact.fieldTeamDescPrefix}
+            {" "}<a href="/volunteers" className="underline">{dict.voterContact.volunteersLinkLabel}</a>
+            {locale === "fr" ? " et " : " و"}
+            <a href="/activists" className="underline">{dict.voterContact.activistsLinkLabel}</a>.
           </p>
 
           <form action={addVolunteer} className="space-y-2 mb-4 border-b border-[var(--border)] pb-4">
-            <input name="full_name" placeholder="اسم عضو جديد بالفريق" className="w-full rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]" required />
-            <input name="phone" placeholder="الهاتف (اختياري)" className="w-full rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]" />
+            <input name="full_name" placeholder={dict.voterContact.addMemberPlaceholder} className="w-full rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]" required />
+            <input name="phone" placeholder={dict.voterContact.phonePlaceholder} className="w-full rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]" />
             <button className="w-full rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-1.5 text-sm">
-              + إضافة كمتطوع
+              {dict.voterContact.addAsVolunteerButton}
             </button>
           </form>
 
           <ul className="space-y-2">
-            {fieldTeam.length === 0 && <li className="text-xs text-[var(--muted)]">لا يوجد أعضاء بعد.</li>}
+            {fieldTeam.length === 0 && <li className="text-xs text-[var(--muted)]">{dict.voterContact.noMembersYet}</li>}
             {fieldTeam.map((m) => (
               <li key={`${m.type}-${m.id}`} className="flex items-center justify-between gap-2 text-sm">
                 <div>
                   <div className="font-bold text-[var(--text)]">{m.name}</div>
-                  <div className="text-xs text-[var(--muted)]">{m.type === "activist" ? "مناضل" : "متطوع"}{m.phone ? ` — ${m.phone}` : ""}</div>
+                  <div className="text-xs text-[var(--muted)]">{m.type === "activist" ? dict.voterContact.activistLabel : dict.voterContact.volunteerLabel}{m.phone ? ` — ${m.phone}` : ""}</div>
                 </div>
                 <span className="text-xs font-extrabold rounded-full bg-[var(--bg)] border border-[var(--border)] px-2.5 py-1 shrink-0">
-                  {m.contactCount.toLocaleString("ar")} تسجيل
+                  {m.contactCount.toLocaleString(numberLocale)} {dict.voterContact.registrationsSuffix}
                 </span>
               </li>
             ))}

@@ -3,15 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { addFieldTask, updateFieldTaskStatus } from "./actions";
 import { IconTasks } from "@/components/icons";
 import ListSearch from "@/components/ListSearch";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<string, string> = {
-  "مخطط": "مخطط",
-  "جارية": "جارية",
-  "منجزة": "منجزة",
-  "ملغاة": "ملغاة",
-};
 const STATUS_COLOR: Record<string, string> = {
   "مخطط": "var(--severity-pending)",
   "جارية": "var(--severity-medium)",
@@ -31,6 +26,15 @@ export default async function FieldTasksPage({
   const statusFilter = params.status ?? "all";
   const communeFilter = params.commune ?? "all";
   const whenFilter = params.when ?? "upcoming"; // upcoming | all
+
+  const { dict, locale } = await getDictionary();
+  const dateLocale = locale === "fr" ? "fr-FR" : "ar-MA";
+  const STATUS_LABEL: Record<string, string> = {
+    "مخطط": dict.fieldTasks.statusPlanned,
+    "جارية": dict.fieldTasks.statusOngoing,
+    "منجزة": dict.fieldTasks.statusDone,
+    "ملغاة": dict.fieldTasks.statusCancelled,
+  };
 
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
@@ -63,26 +67,26 @@ export default async function FieldTasksPage({
 
   return (
     <PageShell
-      title="البرنامج الميداني"
-      subtitle="مهام الفريق الميداني اليومية — توزيع، تعبئة، اجتماعات، حسب الجماعة والفريق"
+      title={dict.fieldTasks.title}
+      subtitle={dict.fieldTasks.subtitle}
       icon={<IconTasks />}
     >
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 flex items-center justify-between flex-wrap gap-4 shadow-sm">
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">مهام اليوم</div>
-          <div className="text-[28px] font-extrabold text-[var(--heading)]">{todayCount} مهمة</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.fieldTasks.todayTasksLabel}</div>
+          <div className="text-[28px] font-extrabold text-[var(--heading)]">{todayCount} {dict.fieldTasks.taskUnit}</div>
         </div>
         <div className="text-sm text-[var(--muted)]">
-          {doneCount} منجزة من أصل {tasks.length} مهمة مسجّلة
+          {doneCount} {dict.fieldTasks.doneOfTotalMiddle} {tasks.length} {dict.fieldTasks.doneOfTotalSuffix}
         </div>
       </div>
 
       <section className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">إضافة مهمة</h2>
+        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">{dict.fieldTasks.addTaskTitle}</h2>
         <form action={addFieldTask} className="grid grid-cols-2 gap-3 mb-2">
           <input
             name="title"
-            placeholder="عنوان المهمة"
+            placeholder={dict.fieldTasks.titlePlaceholder}
             required
             className="col-span-2 rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
@@ -94,7 +98,7 @@ export default async function FieldTasksPage({
           />
           <input
             name="team"
-            placeholder="الفريق/المسؤول (اختياري)"
+            placeholder={dict.fieldTasks.teamPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <select
@@ -102,7 +106,7 @@ export default async function FieldTasksPage({
             defaultValue=""
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
           >
-            <option value="">— بلا جماعة محددة —</option>
+            <option value="">{dict.fieldTasks.noCommuneOption}</option>
             {allCommunes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -111,16 +115,16 @@ export default async function FieldTasksPage({
           </select>
           <input
             name="zone_name"
-            placeholder="الحي/الدوار (اختياري)"
+            placeholder={dict.fieldTasks.zonePlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="description"
-            placeholder="وصف المهمة (اختياري)"
+            placeholder={dict.fieldTasks.descriptionPlaceholder}
             className="col-span-2 rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <button className="col-span-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition">
-            + إضافة مهمة
+            {dict.fieldTasks.addTaskButton}
           </button>
         </form>
       </section>
@@ -136,7 +140,7 @@ export default async function FieldTasksPage({
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
             }`}
           >
-            {tab === "all" ? "الكل" : STATUS_LABEL[tab]} ({statusCounts[tab] ?? 0})
+            {tab === "all" ? dict.common.all : STATUS_LABEL[tab]} ({statusCounts[tab] ?? 0})
           </a>
         ))}
       </div>
@@ -149,7 +153,7 @@ export default async function FieldTasksPage({
               : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
           }`}
         >
-          كل الجماعات
+          {dict.pollingStations.allCommunes}
         </a>
         {allCommunes.map((c) => (
           <a
@@ -174,7 +178,7 @@ export default async function FieldTasksPage({
               : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
           }`}
         >
-          القادمة/الجارية
+          {dict.fieldTasks.upcomingFilter}
         </a>
         <a
           href={`/field-tasks?status=${statusFilter}&commune=${communeFilter}&when=all`}
@@ -184,11 +188,11 @@ export default async function FieldTasksPage({
               : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
           }`}
         >
-          كل المهام (حتى الفائتة)
+          {dict.fieldTasks.allTasksFilter}
         </a>
       </div>
 
-      <ListSearch scopeId="field-tasks-list" placeholder="بحث بالعنوان، الفريق، الجماعة، الحي..." />
+      <ListSearch scopeId="field-tasks-list" placeholder={dict.fieldTasks.searchPlaceholder} />
       <div id="field-tasks-list" className="grid md:grid-cols-2 gap-4">
         {filteredTasks.map((t: any) => (
           <div key={t.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
@@ -196,7 +200,7 @@ export default async function FieldTasksPage({
               <div>
                 <div className="font-extrabold text-[16px] text-[var(--heading)]">{t.title}</div>
                 <div className="text-sm text-[var(--muted)] mt-0.5">
-                  {new Date(t.task_date).toLocaleDateString("ar-MA", { weekday: "long", day: "numeric", month: "long" })}
+                  {new Date(t.task_date).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}
                   {t.team ? ` · ${t.team}` : ""}
                 </div>
               </div>
@@ -214,7 +218,7 @@ export default async function FieldTasksPage({
                   {t.zone_name ? ` — ${t.zone_name}` : ""}
                 </>
               ) : (
-                "بلا نطاق جغرافي محدد"
+                dict.fieldTasks.noScope
               )}
             </div>
             {t.description && <p className="text-sm text-[var(--muted)] mb-2">{t.description}</p>}
@@ -235,7 +239,7 @@ export default async function FieldTasksPage({
           </div>
         ))}
         {filteredTasks.length === 0 && (
-          <p className="text-[15px] text-[var(--muted)] md:col-span-2">ماكاينش مهام تطابق هاد الفلترة.</p>
+          <p className="text-[15px] text-[var(--muted)] md:col-span-2">{dict.fieldTasks.noMatch}</p>
         )}
       </div>
     </PageShell>
