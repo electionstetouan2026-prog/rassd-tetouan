@@ -545,6 +545,14 @@ const fr = {
     aiGeneratedByPrefix: "Généré par ",
     aiNoSummaryMessage: "Aucun résumé pour aujourd'hui — cliquez sur « Générer le résumé du jour » pour le calculer à partir des chiffres ci-dessous (une fois par jour).",
   },
+  login: {
+    subtitle: "Connexion — réservée à l'équipe autorisée",
+    emailLabel: "E-mail",
+    passwordLabel: "Mot de passe",
+    loginButton: "Connexion",
+    loadingEllipsis: "...",
+    errorMessage: "E-mail ou mot de passe incorrect",
+  },
 } satisfies typeof ar;
 
 export default fr;

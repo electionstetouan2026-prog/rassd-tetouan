@@ -544,6 +544,14 @@ const ar = {
     aiGeneratedByPrefix: "مولّد بـ",
     aiNoSummaryMessage: 'ماكاينش ملخص لليوم بعد — اضغط "توليد ملخص اليوم" باش يتحسب من الأرقام أسفله (مرة وحدة فاليوم).',
   },
+  login: {
+    subtitle: "تسجيل الدخول — للفريق المخول فقط",
+    emailLabel: "البريد الإلكتروني",
+    passwordLabel: "كلمة السر",
+    loginButton: "دخول",
+    loadingEllipsis: "...",
+    errorMessage: "البريد أو كلمة السر غير صحيحة",
+  },
 };
 
 export default ar;
