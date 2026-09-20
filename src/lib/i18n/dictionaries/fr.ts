@@ -376,6 +376,36 @@ const fr = {
     searchOfficialsPlaceholder: "Rechercher par nom, rôle, commune...",
     noNamesYet: "Aucun nom saisi pour l'instant.",
   },
+  import: {
+    title: "Import général (CSV / Excel)",
+    subtitle: "Import par lot des bénévoles/militants/responsables du parti/observateurs depuis un fichier CSV ou Excel, au lieu d'une saisie manuelle ligne par ligne",
+    howToUseTitle: "Comment l'utiliser",
+    howToUseBody:
+      " : préparez un fichier CSV ou Excel dont la première ligne contient les noms de colonnes exactement comme dans la liste ci-dessous pour chaque type de données (en arabe). « الاسم الكامل » (nom complet) est la seule colonne obligatoire — toute ligne sans nom complet est ignorée et signalée dans le résultat. La colonne « الجماعة » (commune), si présente, doit correspondre exactement au nom de la commune tel qu'enregistré sur la plateforme (Tétouan, Azla, etc.) — en cas de non-correspondance, la personne est enregistrée sans commune liée, sans bloquer l'import. Pour les observateurs : « الجماعة » (commune) + « رقم المكتب » (numéro de bureau) (ou « اسم المركز », nom du centre) sont utilisés ensemble pour lier automatiquement chaque observateur au bureau de vote correspondant — en cas d'échec de la correspondance, l'observateur est enregistré avec le statut « non assigné » et peut être lié manuellement depuis la page des observateurs après l'import. Si votre fichier a le nom réparti sur deux colonnes (« النسب » et « الإسم » par exemple) au lieu d'une seule colonne « الاسم الكامل », ce n'est pas un problème — la plateforme les combine automatiquement.",
+    expectedColumnsLabel: "Noms de colonnes attendus (première ligne du fichier) :",
+    requiredBadge: "Obligatoire",
+    targetLabelVolunteers: "Bénévoles",
+    targetLabelActivists: "Militants",
+    targetLabelPartyOfficials: "Responsables/candidats du parti",
+    targetLabelObservers: "Observateurs",
+    targetTypeLabel: "Type de données à importer",
+    choosePlaceholder: "— Choisir —",
+    filePlaceholderLabel: "Fichier CSV ou Excel (.csv, .xlsx, .xls)",
+    importingButton: "Import en cours…",
+    importButton: "Importer",
+    communeWarningsLabel: "Avertissements sur les communes",
+    duplicatesLabel: "Noms rejetés — déjà existants/en double",
+    skippedRowsLabel: "Lignes ignorées",
+    andMoreSuffix: "autre(s)…",
+    andPrefix: "et ",
+    cellsImportTitle: "Import des cellules de quartier",
+    cellsImportDescIntro: "Pour un fichier contenant une liste de quartiers/cellules (nom du quartier ou de la cellule + son responsable + son téléphone, l'ordre et le nombre d'observateurs ciblé étant optionnels). Colonnes attendues :",
+    cellsImportDescOutro:
+      " . Tout quartier absent en tant que « zone » dans /presence est ajouté automatiquement, et les données sont directement liées à la couverture terrain affichée dans /presence, /hot-blocks et /stronghold-map.",
+    communeFieldLabel: "Commune",
+    importCellsButton: "Importer les cellules",
+    cellsDuplicateLabel: "En double/déjà existant",
+  },
 } satisfies typeof ar;
 
 export default fr;

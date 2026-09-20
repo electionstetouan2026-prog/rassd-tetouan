@@ -2,27 +2,27 @@
 
 import { useActionState } from "react";
 import { runNeighborhoodCellsImportAction } from "./neighborhoodCellsActions";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
 export default function NeighborhoodCellsImportForm({
   communes,
+  dict,
 }: {
   communes: { id: string; name: string }[];
+  dict: Dictionary;
 }) {
   const [state, formAction, isPending] = useActionState(runNeighborhoodCellsImportAction, null);
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm mb-6">
-      <h2 className="font-extrabold text-[var(--heading)] mb-2">استيراد خلايا الأحياء</h2>
+      <h2 className="font-extrabold text-[var(--heading)] mb-2">{dict.import.cellsImportTitle}</h2>
       <p className="text-xs text-[var(--muted)] mb-3 leading-relaxed">
-        لملف فيه لائحة أحياء/خلايا (اسم الحي أو الخلية + المسؤول عنها + هاتفو، والترتيب وعدد المراقبين المستهدف
-        اختياريين). الأعمدة المتوقعة: <b className="text-[var(--text)]">الخلية</b> (إلزامي),{" "}
+        {dict.import.cellsImportDescIntro} <b className="text-[var(--text)]">الخلية</b> ({dict.import.requiredBadge}),{" "}
         <b className="text-[var(--text)]">المسؤول عن الخلية</b>, <b className="text-[var(--text)]">رقم الهاتف</b>,{" "}
-        <b className="text-[var(--text)]">الترتيب</b>, <b className="text-[var(--text)]">عدد المراقبين</b>. كل حي
-        غير موجود كـ"منطقة" فـ /presence كيتزاد تلقائيا، والبيانات كتتربط مباشرة بالتغطية الميدانية المعروضة فـ
-        /presence و/hot-blocks و/stronghold-map.
+        <b className="text-[var(--text)]">الترتيب</b>, <b className="text-[var(--text)]">عدد المراقبين</b>{dict.import.cellsImportDescOutro}
       </p>
       <form action={formAction} className="grid gap-3">
-        <label className="text-sm font-bold text-[var(--muted)]">الجماعة</label>
+        <label className="text-sm font-bold text-[var(--muted)]">{dict.import.communeFieldLabel}</label>
         <select
           name="commune_id"
           required
@@ -30,7 +30,7 @@ export default function NeighborhoodCellsImportForm({
           className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
         >
           <option value="" disabled>
-            — اختر —
+            {dict.import.choosePlaceholder}
           </option>
           {communes.map((c) => (
             <option key={c.id} value={c.id}>
@@ -39,7 +39,7 @@ export default function NeighborhoodCellsImportForm({
           ))}
         </select>
 
-        <label className="text-sm font-bold text-[var(--muted)] mt-2">ملف CSV أو Excel (.csv, .xlsx, .xls)</label>
+        <label className="text-sm font-bold text-[var(--muted)] mt-2">{dict.import.filePlaceholderLabel}</label>
         <input
           type="file"
           name="file"
@@ -53,7 +53,7 @@ export default function NeighborhoodCellsImportForm({
           disabled={isPending}
           className="mt-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition disabled:opacity-60"
         >
-          {isPending ? "جارٍ الاستيراد…" : "استيراد الخلايا"}
+          {isPending ? dict.import.importingButton : dict.import.importCellsButton}
         </button>
       </form>
 
@@ -69,25 +69,25 @@ export default function NeighborhoodCellsImportForm({
 
           {!!state.duplicates?.length && (
             <div className="mt-3">
-              <div className="font-bold mb-1">مكرر/موجود مسبقا ({state.duplicates.length}):</div>
+              <div className="font-bold mb-1">{dict.import.cellsDuplicateLabel} ({state.duplicates.length}):</div>
               <ul className="list-disc pr-5 space-y-0.5">
                 {state.duplicates.slice(0, 20).map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}
               </ul>
-              {state.duplicates.length > 20 && <div className="mt-1">و{state.duplicates.length - 20} أخرى…</div>}
+              {state.duplicates.length > 20 && <div className="mt-1">{dict.import.andPrefix}{state.duplicates.length - 20} {dict.import.andMoreSuffix}</div>}
             </div>
           )}
 
           {!!state.skipped?.length && (
             <div className="mt-3">
-              <div className="font-bold mb-1">صفوف تم تجاوزها ({state.skipped.length}):</div>
+              <div className="font-bold mb-1">{dict.import.skippedRowsLabel} ({state.skipped.length}):</div>
               <ul className="list-disc pr-5 space-y-0.5">
                 {state.skipped.slice(0, 20).map((w, i) => (
                   <li key={i}>{w}</li>
                 ))}
               </ul>
-              {state.skipped.length > 20 && <div className="mt-1">و{state.skipped.length - 20} أخرى…</div>}
+              {state.skipped.length > 20 && <div className="mt-1">{dict.import.andPrefix}{state.skipped.length - 20} {dict.import.andMoreSuffix}</div>}
             </div>
           )}
         </div>
