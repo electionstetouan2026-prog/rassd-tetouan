@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { updatePollingStationLocation } from "./actions";
 import { IconBuilding } from "@/components/icons";
 import ListSearch from "@/components/ListSearch";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -51,6 +52,14 @@ export default async function PollingStationsPage({
   const communeFilter = params.commune ?? "all";
   const locationFilter = params.location ?? "all";
 
+  const { dict, locale } = await getDictionary();
+  const numberLocale = locale === "fr" ? "fr-FR" : "ar";
+  const LOCATION_LABEL: Record<string, string> = {
+    "مؤكد": dict.common.status.confirmed,
+    "يحتاج تأكيد": dict.pollingStations.locationNeedsConfirmation,
+    "غير محدد": dict.pollingStations.locationUndefined,
+  };
+
   const supabase = await createClient();
 
   const [{ data: communesRaw }, { data: stationsRaw }, { data: voterCountsRaw }, { data: observersRaw }] =
@@ -89,17 +98,17 @@ export default async function PollingStationsPage({
 
   return (
     <PageShell
-      title="مكاتب التصويت"
-      subtitle="تصفح كل مكاتب التصويت الحقيقية (594 مكتب، 22 جماعة) — تأكيد الموقع، الإحداثيات، ورابط الخريطة لكل مكتب"
+      title={dict.pollingStations.title}
+      subtitle={dict.pollingStations.subtitle}
       icon={<IconBuilding />}
     >
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 flex items-center gap-6 flex-wrap shadow-sm">
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">إجمالي المكاتب</div>
-          <div className="text-[28px] font-extrabold text-[var(--heading)]">{stations.length.toLocaleString("ar")}</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.pollingStations.totalStations}</div>
+          <div className="text-[28px] font-extrabold text-[var(--heading)]">{stations.length.toLocaleString(numberLocale)}</div>
         </div>
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">مواقع مؤكدة</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.pollingStations.confirmedLocations}</div>
           <div className="text-[28px] font-extrabold" style={{ color: "var(--severity-neutral)" }}>
             {locationCounts["مؤكد"] ?? 0}
           </div>
@@ -117,7 +126,7 @@ export default async function PollingStationsPage({
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
             }`}
           >
-            {t === "all" ? "الكل" : t} ({locationCounts[t] ?? 0})
+            {t === "all" ? dict.common.all : LOCATION_LABEL[t]} ({locationCounts[t] ?? 0})
           </a>
         ))}
       </div>
@@ -130,7 +139,7 @@ export default async function PollingStationsPage({
               : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
           }`}
         >
-          كل الجماعات
+          {dict.pollingStations.allCommunes}
         </a>
         {communes.map((c) => (
           <a
@@ -147,7 +156,7 @@ export default async function PollingStationsPage({
         ))}
       </div>
 
-      <ListSearch scopeId="polling-stations-list" placeholder="بحث باسم المكتب، المنطقة، أو الجماعة..." />
+      <ListSearch scopeId="polling-stations-list" placeholder={dict.pollingStations.searchPlaceholder} />
       <div id="polling-stations-list" className="space-y-4">
         {filteredCommunes.map((c) => {
           const communeStations = (stationsByCommune.get(c.id) ?? []).filter(
@@ -158,7 +167,7 @@ export default async function PollingStationsPage({
             <details key={c.id} data-search-group className="rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-hidden">
               <summary className="cursor-pointer flex items-center justify-between flex-wrap gap-3 p-5 list-none">
                 <span className="font-extrabold text-[17px] text-[var(--heading)]">{c.name}</span>
-                <span className="text-sm text-[var(--muted)]">{communeStations.length} مكتب</span>
+                <span className="text-sm text-[var(--muted)]">{communeStations.length} {dict.pollingStations.stationsUnit}</span>
               </summary>
               <div className="px-5 pb-5 space-y-2 border-t border-[var(--border)] pt-4">
                 {groupBySchool(communeStations).map((school) => {
@@ -172,16 +181,16 @@ export default async function PollingStationsPage({
                       <summary className="cursor-pointer flex items-center justify-between gap-3 p-3.5 list-none flex-wrap">
                         <div className="flex items-center gap-3 flex-wrap">
                           <span className="font-extrabold text-[var(--heading)]">{school.name}</span>
-                          <span className="text-sm text-[var(--muted)]">{school.stations.length} مكتب</span>
+                          <span className="text-sm text-[var(--muted)]">{school.stations.length} {dict.pollingStations.stationsUnit}</span>
                           <span className="text-sm text-[var(--muted)]">
-                            {schoolTotalVoters.toLocaleString("ar")} ناخب إجمالي
+                            {schoolTotalVoters.toLocaleString(numberLocale)} {dict.pollingStations.totalVotersSuffix}
                           </span>
                         </div>
                         <span
                           className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
                           style={{ background: schoolCoveredVoters > 0 ? "var(--severity-neutral)" : "#9ca3af" }}
                         >
-                          {schoolCoveredVoters.toLocaleString("ar")} ناخب عندي ({schoolCoveragePct}%)
+                          {schoolCoveredVoters.toLocaleString(numberLocale)} {dict.pollingStations.votersCoveredSuffix} ({schoolCoveragePct}%)
                         </span>
                       </summary>
                       <div className="px-3.5 pb-3.5 space-y-2">
@@ -190,19 +199,19 @@ export default async function PollingStationsPage({
                     <summary className="cursor-pointer flex items-center justify-between gap-3 p-3.5 list-none">
                       <div className="flex items-center gap-3 flex-wrap">
                         <span className="font-bold text-[var(--text)]">
-                          {s.sub_office_number ? `مكتب ${s.sub_office_number} — ` : ""}
+                          {s.sub_office_number ? `${dict.pollingStations.officePrefix} ${s.sub_office_number} — ` : ""}
                           {s.center_name}
                         </span>
                         {s.approx_zone && <span className="text-sm text-[var(--muted)]">({s.approx_zone})</span>}
                         <span className="text-sm text-[var(--muted)]">
-                          {(voterCounts.get(s.id) ?? 0).toLocaleString("ar")} ناخب
+                          {(voterCounts.get(s.id) ?? 0).toLocaleString(numberLocale)} {dict.pollingStations.votersUnit}
                         </span>
                         {confirmedObserverStations.has(s.id) && (
                           <span
                             className="text-xs font-extrabold rounded-full px-2.5 py-1 text-white"
                             style={{ background: "var(--severity-neutral)" }}
                           >
-                            مراقب مؤكد
+                            {dict.pollingStations.confirmedObserverBadge}
                           </span>
                         )}
                       </div>
@@ -210,7 +219,7 @@ export default async function PollingStationsPage({
                         className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
                         style={{ background: LOCATION_COLOR[s.location_confirmed] ?? "#9ca3af" }}
                       >
-                        {s.location_confirmed}
+                        {LOCATION_LABEL[s.location_confirmed] ?? s.location_confirmed}
                       </span>
                     </summary>
                     <form
@@ -220,19 +229,19 @@ export default async function PollingStationsPage({
                       <input
                         name="approx_zone"
                         defaultValue={s.approx_zone ?? ""}
-                        placeholder="المنطقة التقريبية"
+                        placeholder={dict.pollingStations.approxZonePlaceholder}
                         className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                       />
                       <input
                         name="coordinates"
                         defaultValue={s.coordinates ?? ""}
-                        placeholder="الإحداثيات (خط عرض، خط طول)"
+                        placeholder={dict.pollingStations.coordinatesPlaceholder}
                         className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                       />
                       <input
                         name="map_link"
                         defaultValue={s.map_link ?? ""}
-                        placeholder="رابط خريطة (اختياري)"
+                        placeholder={dict.pollingStations.mapLinkPlaceholder}
                         className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                       />
                       <select
@@ -242,18 +251,18 @@ export default async function PollingStationsPage({
                       >
                         {LOCATION_TABS.map((t) => (
                           <option key={t} value={t}>
-                            {t}
+                            {LOCATION_LABEL[t]}
                           </option>
                         ))}
                       </select>
                       <button className="col-span-2 md:col-span-4 rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-2 text-sm">
-                        حفظ
+                        {dict.common.save}
                       </button>
                     </form>
                     {s.map_link && (
                       <div className="px-3.5 pb-3.5">
                         <a href={s.map_link} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--brand-blue)] font-bold underline">
-                          فتح الخريطة ↗
+                          {dict.pollingStations.openMapLink}
                         </a>
                       </div>
                     )}

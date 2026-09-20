@@ -1,6 +1,7 @@
 import Sidebar from "./Sidebar";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
-export default function PageShell({
+export default async function PageShell({
   title,
   subtitle,
   icon,
@@ -11,9 +12,10 @@ export default function PageShell({
   icon?: React.ReactNode;
   children: React.ReactNode;
 }) {
+  const { dict, locale } = await getDictionary();
   return (
     <div className="flex min-h-screen bg-[var(--bg)]">
-      <Sidebar />
+      <Sidebar dict={dict} locale={locale} />
       <main className="flex-1 p-6 md:p-8 max-w-6xl mx-auto w-full">
         <div
           className="rounded-2xl px-6 py-5 md:px-8 md:py-6 mb-6 flex items-center justify-between gap-4 shadow-lg shadow-black/10"

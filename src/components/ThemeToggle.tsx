@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { IconSun, IconMoon } from "./icons";
 
-export default function ThemeToggle() {
+export default function ThemeToggle({
+  lightLabel = "وضع فاتح",
+  darkLabel = "وضع داكن",
+}: {
+  lightLabel?: string;
+  darkLabel?: string;
+} = {}) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
 
   useEffect(() => {
@@ -26,7 +32,7 @@ export default function ThemeToggle() {
       className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] font-bold text-white/70 hover:bg-white/10 transition"
     >
       {theme === "dark" ? <IconSun /> : <IconMoon />}
-      <span>{theme === "dark" ? "وضع فاتح" : "وضع داكن"}</span>
+      <span>{theme === "dark" ? lightLabel : darkLabel}</span>
     </button>
   );
 }

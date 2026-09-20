@@ -4,15 +4,10 @@ import { addObserver, assignStation, updateObserverStatus, updateObserverInfo } 
 import { IconPeople } from "@/components/icons";
 import StationCombobox from "@/components/StationCombobox";
 import ListSearch from "@/components/ListSearch";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
-const STATUS_LABEL: Record<string, string> = {
-  "مؤكد": "مؤكد",
-  "غير مؤكد": "غير مؤكد",
-  "غايب": "غايب",
-  "لم يُعيّن": "لم يُعيّن",
-};
 const STATUS_COLOR: Record<string, string> = {
   "مؤكد": "var(--severity-neutral)",
   "غير مؤكد": "var(--severity-medium)",
@@ -46,6 +41,14 @@ export default async function ObserversPage({
   const params = await searchParams;
   const statusFilter = params.status ?? "all";
   const communeFilter = params.commune ?? "all";
+
+  const { dict, locale } = await getDictionary();
+  const STATUS_LABEL: Record<string, string> = {
+    "مؤكد": dict.common.status.confirmed,
+    "غير مؤكد": dict.common.status.unconfirmed,
+    "غايب": dict.common.status.absent,
+    "لم يُعيّن": dict.common.status.unassigned,
+  };
 
   const supabase = await createClient();
 
@@ -88,53 +91,52 @@ export default async function ObserversPage({
   // نعرض "أقل من 1%" بدل "0%" لما تكون التغطية موجودة فعلاً لكن صغيرة جداً،
   // باش ماتبانش الأرقام متضاربة (مثلاً "1 من 594 (0%)")
   const coveragePctLabel =
-    coveredStations > 0 && rawCoveragePct < 1 ? "أقل من 1%" : `${Math.round(rawCoveragePct)}%`;
+    coveredStations > 0 && rawCoveragePct < 1 ? dict.observers.underOnePercent : `${Math.round(rawCoveragePct)}%`;
 
   return (
     <PageShell
-      title="المراقبون"
-      subtitle="جرد المراقبين وحالة إسنادهم لمكاتب التصويت، مع متابعة يومية لحالة كل مكتب"
+      title={dict.observers.title}
+      subtitle={dict.observers.subtitle}
       icon={<IconPeople />}
     >
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 flex items-center justify-between flex-wrap gap-4 shadow-sm">
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">التغطية المؤكدة</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.observers.coverageLabel}</div>
           <div className="text-[28px] font-extrabold text-[var(--heading)]">
-            {coveredStations} من {totalStations} مكتب ({coveragePctLabel})
+            {coveredStations} {dict.observers.coverageOf} {totalStations} {dict.observers.stationsUnit} ({coveragePctLabel})
           </div>
         </div>
         <div className="text-sm text-[var(--muted)] max-w-md leading-relaxed">
-          مكتب "مغطى" = عندو مراقب واحد على الأقل بحالة تأكيد "مؤكد". المكاتب المعلّمة
-          "بيانات افتراضية" ماشي حقيقية بعد.
+          {dict.observers.coverageNote}
         </div>
       </div>
 
       <section className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">إضافة مراقب</h2>
+        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">{dict.observers.addObserverTitle}</h2>
         <form action={addObserver} className="grid grid-cols-2 gap-3 mb-2">
           <input
             name="full_name"
-            placeholder="الاسم الكامل"
+            placeholder={dict.observers.fullNamePlaceholder}
             required
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="phone"
-            placeholder="الهاتف (اختياري)"
+            placeholder={dict.observers.phonePlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <StationCombobox
             name="polling_station_id"
-            placeholder="— بلا إسناد مكتب دابا — (اكتب للبحث)"
+            placeholder={dict.observers.noStationPlaceholder}
             className="col-span-2"
           />
           <input
             name="notes"
-            placeholder="ملاحظة (اختياري)"
+            placeholder={dict.observers.notesPlaceholder}
             className="col-span-2 rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <button className="col-span-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition">
-            + إضافة مراقب
+            {dict.observers.addObserverButton}
           </button>
         </form>
       </section>
@@ -150,7 +152,7 @@ export default async function ObserversPage({
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
             }`}
           >
-            {tab === "all" ? "الكل" : STATUS_LABEL[tab]} ({statusCounts[tab] ?? 0})
+            {tab === "all" ? dict.common.all : STATUS_LABEL[tab]} ({statusCounts[tab] ?? 0})
           </a>
         ))}
       </div>
@@ -163,7 +165,7 @@ export default async function ObserversPage({
               : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
           }`}
         >
-          كل الجماعات
+          {dict.observers.allCommunes}
         </a>
         {(communes ?? []).map((c) => (
           <a
@@ -180,7 +182,7 @@ export default async function ObserversPage({
         ))}
       </div>
 
-      <ListSearch scopeId="observers-list" placeholder="بحث بالاسم، الهاتف، المكتب، الجماعة..." />
+      <ListSearch scopeId="observers-list" placeholder={dict.observers.searchPlaceholder} />
       <div id="observers-list" className="grid md:grid-cols-2 gap-4">
         {filteredObservers.map((o: any) => (
           <div key={o.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
@@ -205,38 +207,38 @@ export default async function ObserversPage({
             <div className="text-sm text-[var(--muted)] mb-2 leading-relaxed">
               {o.polling_stations
                 ? <><b className="text-[var(--text)]">{o.polling_stations.communes?.name ?? "?"}</b> — {o.polling_stations.center_name}
-                    {o.polling_stations.sub_office_number ? ` (فرعي ${o.polling_stations.sub_office_number})` : ""}
+                    {o.polling_stations.sub_office_number ? ` (${dict.observers.subOfficePrefix} ${o.polling_stations.sub_office_number})` : ""}
                   </>
-                : "بلا مكتب مسند"}
+                : dict.observers.noStationAssigned}
             </div>
             {o.notes && <p className="text-sm text-[var(--muted)] mb-2">{o.notes}</p>}
 
             <details className="mb-2">
               <summary className="cursor-pointer text-xs font-bold text-[var(--brand-blue)]">
-                تعديل الاسم/الهاتف/الملاحظة
+                {dict.observers.editInfoSummary}
               </summary>
               <form action={updateObserverInfo.bind(null, o.id)} className="grid grid-cols-2 gap-2 mt-2">
                 <input
                   name="full_name"
                   defaultValue={o.full_name}
                   required
-                  placeholder="الاسم الكامل"
+                  placeholder={dict.observers.fullNamePlaceholder}
                   className="col-span-2 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]"
                 />
                 <input
                   name="phone"
                   defaultValue={o.phone ?? ""}
-                  placeholder="الهاتف"
+                  placeholder={dict.observers.phonePlaceholder}
                   className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]"
                 />
                 <input
                   name="notes"
                   defaultValue={o.notes ?? ""}
-                  placeholder="ملاحظة"
+                  placeholder={dict.observers.notesPlaceholder}
                   className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-sm bg-[var(--bg)]"
                 />
                 <button className="col-span-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-3.5 py-1.5 text-sm hover:bg-[var(--brand-blue-hover)] transition">
-                  حفظ
+                  {dict.common.save}
                 </button>
               </form>
             </details>
@@ -258,7 +260,7 @@ export default async function ObserversPage({
               ))}
               {o.last_checked_at && (
                 <span className="text-xs text-[var(--muted)]">
-                  آخر تحديث: {new Date(o.last_checked_at).toLocaleString("ar-MA")}
+                  {dict.observers.lastUpdatePrefix} {new Date(o.last_checked_at).toLocaleString(locale === "fr" ? "fr-FR" : "ar-MA")}
                 </span>
               )}
             </div>
@@ -270,22 +272,22 @@ export default async function ObserversPage({
                   o.polling_stations
                     ? `${o.polling_stations.communes?.name ?? "?"} — ${o.polling_stations.center_name}${
                         o.polling_stations.sub_office_number
-                          ? ` (فرعي ${o.polling_stations.sub_office_number})`
+                          ? ` (${dict.observers.subOfficePrefix} ${o.polling_stations.sub_office_number})`
                           : ""
                       }`
                     : ""
                 }
-                placeholder="— بلا إسناد — (اكتب للبحث)"
+                placeholder={dict.observers.reassignPlaceholder}
                 className="flex-1"
               />
               <button className="text-sm font-bold rounded-lg border border-[var(--border)] px-3.5 py-1.5">
-                تغيير المكتب
+                {dict.observers.changeStationButton}
               </button>
             </form>
           </div>
         ))}
         {filteredObservers.length === 0 && (
-          <p className="text-[15px] text-[var(--muted)] md:col-span-2">ماكاينش مراقبون يطابقو هاد الفلترة.</p>
+          <p className="text-[15px] text-[var(--muted)] md:col-span-2">{dict.observers.noMatch}</p>
         )}
       </div>
     </PageShell>

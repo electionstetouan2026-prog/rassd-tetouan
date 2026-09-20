@@ -3,29 +3,35 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import ThemeToggle from "./ThemeToggle";
+import LanguageSwitcher from "./LanguageSwitcher";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
+import type { Locale } from "@/lib/i18n/locale";
 import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconShield, IconFlame, IconPhone, IconHeartHand, IconIdBadge, IconBuilding, IconTarget, IconLandmark, IconUpload, IconLogout } from "./icons";
 
-const NAV_ITEMS = [
-  { href: "/", label: "لوحة القيادة", Icon: IconDashboard },
-  { href: "/observers", label: "المراقبون", Icon: IconPeople },
-  { href: "/presence", label: "خريطة الحضور", Icon: IconMap },
-  { href: "/field-tasks", label: "البرنامج الميداني", Icon: IconTasks },
-  { href: "/voter-contact", label: "متابعة الناخبين", Icon: IconPhone },
-  { href: "/volunteers", label: "المتطوعون", Icon: IconHeartHand },
-  { href: "/activists", label: "المناضلون", Icon: IconIdBadge },
-  { href: "/polling-stations", label: "مكاتب التصويت", Icon: IconBuilding },
-  { href: "/hot-blocks", label: "الكتل الساخنة", Icon: IconFlame },
-  { href: "/stronghold-map", label: "الخريطة ومواطن القوة", Icon: IconTarget },
-  { href: "/electoral-context", label: "السياق الانتخابي", Icon: IconLandmark },
-  { href: "/candidates", label: "ملفات المرشحين", Icon: IconIdBadge },
-  { href: "/import", label: "استيراد عام (CSV/Excel)", Icon: IconUpload },
-  { href: "/monitoring-reports", label: "لجنة المراقبة", Icon: IconShield },
-  { href: "/digital-watch", label: "اليقظة الرقمية", Icon: IconEye },
-  { href: "/ranking", label: "الترتيب التنافسي", Icon: IconChart },
-];
+function buildNavItems(nav: Dictionary["nav"]) {
+  return [
+    { href: "/", label: nav.dashboard, Icon: IconDashboard },
+    { href: "/observers", label: nav.observers, Icon: IconPeople },
+    { href: "/presence", label: nav.presence, Icon: IconMap },
+    { href: "/field-tasks", label: nav.fieldTasks, Icon: IconTasks },
+    { href: "/voter-contact", label: nav.voterContact, Icon: IconPhone },
+    { href: "/volunteers", label: nav.volunteers, Icon: IconHeartHand },
+    { href: "/activists", label: nav.activists, Icon: IconIdBadge },
+    { href: "/polling-stations", label: nav.pollingStations, Icon: IconBuilding },
+    { href: "/hot-blocks", label: nav.hotBlocks, Icon: IconFlame },
+    { href: "/stronghold-map", label: nav.strongholdMap, Icon: IconTarget },
+    { href: "/electoral-context", label: nav.electoralContext, Icon: IconLandmark },
+    { href: "/candidates", label: nav.candidates, Icon: IconIdBadge },
+    { href: "/import", label: nav.importGeneral, Icon: IconUpload },
+    { href: "/monitoring-reports", label: nav.monitoringReports, Icon: IconShield },
+    { href: "/digital-watch", label: nav.digitalWatch, Icon: IconEye },
+    { href: "/ranking", label: nav.ranking, Icon: IconChart },
+  ];
+}
 
-export default function Sidebar() {
+export default function Sidebar({ dict, locale }: { dict: Dictionary; locale: Locale }) {
   const pathname = usePathname();
+  const NAV_ITEMS = buildNavItems(dict.nav);
 
   return (
     <aside
@@ -38,8 +44,8 @@ export default function Sidebar() {
             ز
           </div>
           <div>
-            <div className="text-white font-extrabold text-base leading-tight">حملة تطوان 2026</div>
-            <div className="text-[13px] text-white/55 mt-0.5">نظام إدارة الحملة</div>
+            <div className="text-white font-extrabold text-base leading-tight">{dict.sidebar.campaignName}</div>
+            <div className="text-[13px] text-white/55 mt-0.5">{dict.sidebar.systemLabel}</div>
           </div>
         </div>
         <nav className="space-y-1.5">
@@ -63,14 +69,15 @@ export default function Sidebar() {
         </nav>
       </div>
       <div className="space-y-1 border-t border-white/10 pt-3">
-        <ThemeToggle />
+        <LanguageSwitcher locale={locale} labelFr={dict.sidebar.switchToFrench} labelAr={dict.sidebar.switchToArabic} />
+        <ThemeToggle lightLabel={dict.sidebar.lightMode} darkLabel={dict.sidebar.darkMode} />
         <form action="/logout" method="post">
           <button
             type="submit"
             className="w-full flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[15px] font-bold text-white/70 hover:bg-white/10 transition"
           >
             <IconLogout />
-            <span>خروج</span>
+            <span>{dict.sidebar.logout}</span>
           </button>
         </form>
       </div>

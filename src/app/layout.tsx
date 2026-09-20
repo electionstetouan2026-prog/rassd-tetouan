@@ -1,10 +1,19 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { getLocale } from "@/lib/i18n/locale";
 
-export const metadata: Metadata = {
-  title: "منصة إدارة الحملة — تطوان",
-  description: "منصة إدارة حملة زهير الركاني، دائرة تطوان",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = await getLocale();
+  return locale === "fr"
+    ? {
+        title: "Plateforme de gestion de campagne — Tétouan",
+        description: "Plateforme de gestion de la campagne de Zouhair Rekkani, circonscription de Tétouan",
+      }
+    : {
+        title: "منصة إدارة الحملة — تطوان",
+        description: "منصة إدارة حملة زهير الركاني، دائرة تطوان",
+      };
+}
 
 const THEME_INIT_SCRIPT = `
 (function () {
@@ -16,9 +25,11 @@ const THEME_INIT_SCRIPT = `
 })();
 `;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getLocale();
+  const dir = locale === "ar" ? "rtl" : "ltr";
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
+    <html lang={locale} dir={dir} suppressHydrationWarning>
       <head>
         {/* بلا وميض عند التحميل: تحديد الوضع (فاتح/داكن) قبل أول render */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
