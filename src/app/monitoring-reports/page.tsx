@@ -232,7 +232,7 @@ export default async function MonitoringReportsPage({
         ))}
       </div>
 
-      <ListSearch scopeId="monitoring-reports-list" placeholder={dict.monitoringReports.searchPlaceholder} />
+      <ListSearch scopeId="monitoring-reports-list" placeholder={dict.monitoringReports.searchPlaceholder} dict={dict} locale={locale} />
       <div id="monitoring-reports-list" className="grid md:grid-cols-2 gap-4">
         {filteredReports.map((r) => (
           <div key={r.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">

@@ -80,7 +80,7 @@ export default async function HotBlocksPage({
               {priorityLabel(selected.priorityScore, dict).label} ({selected.priorityScore})
             </span>
           </div>
-          <ListSearch scopeId="hot-blocks-stations-list" placeholder={dict.hotBlocks.searchStationsPlaceholder} />
+          <ListSearch scopeId="hot-blocks-stations-list" placeholder={dict.hotBlocks.searchStationsPlaceholder} dict={dict} locale={locale} />
           <div id="hot-blocks-stations-list" className="space-y-2">
             {(stations ?? []).map((s) => (
               <div
@@ -113,7 +113,7 @@ export default async function HotBlocksPage({
         </div>
       ) : (
         <>
-        <ListSearch scopeId="hot-blocks-communes-list" placeholder={dict.hotBlocks.searchCommunesPlaceholder} />
+        <ListSearch scopeId="hot-blocks-communes-list" placeholder={dict.hotBlocks.searchCommunesPlaceholder} dict={dict} locale={locale} />
         <div id="hot-blocks-communes-list" className="space-y-2.5">
           {rows.map((r) => {
             const p = priorityLabel(r.priorityScore, dict);

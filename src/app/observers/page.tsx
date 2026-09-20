@@ -129,6 +129,7 @@ export default async function ObserversPage({
             name="polling_station_id"
             placeholder={dict.observers.noStationPlaceholder}
             className="col-span-2"
+            dict={dict}
           />
           <input
             name="notes"
@@ -182,7 +183,7 @@ export default async function ObserversPage({
         ))}
       </div>
 
-      <ListSearch scopeId="observers-list" placeholder={dict.observers.searchPlaceholder} />
+      <ListSearch scopeId="observers-list" placeholder={dict.observers.searchPlaceholder} dict={dict} locale={locale} />
       <div id="observers-list" className="grid md:grid-cols-2 gap-4">
         {filteredObservers.map((o: any) => (
           <div key={o.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
@@ -279,6 +280,7 @@ export default async function ObserversPage({
                 }
                 placeholder={dict.observers.reassignPlaceholder}
                 className="flex-1"
+                dict={dict}
               />
               <button className="text-sm font-bold rounded-lg border border-[var(--border)] px-3.5 py-1.5">
                 {dict.observers.changeStationButton}

@@ -80,7 +80,7 @@ export default async function VoterContactPage({
 
         <div className="text-sm text-[var(--muted)] mb-3">{total.toLocaleString(numberLocale)} {dict.voterContact.voterInFilterSuffix}</div>
 
-        <ListSearch scopeId="station-voters-list" placeholder={dict.voterContact.searchInPagePlaceholder} />
+        <ListSearch scopeId="station-voters-list" placeholder={dict.voterContact.searchInPagePlaceholder} dict={dict} locale={locale} />
         <div id="station-voters-list" className="space-y-2">
           {voters.map((v) => {
             const meta = statusMeta(v.status);
@@ -179,7 +179,7 @@ export default async function VoterContactPage({
         <a href="/voter-contact" className="text-sm text-[var(--brand-blue)] font-bold underline mb-4 inline-block">
           {dict.voterContact.backToAllCommunes}
         </a>
-        <ListSearch scopeId="voter-contact-stations-list" placeholder={dict.voterContact.searchStationsPlaceholder} />
+        <ListSearch scopeId="voter-contact-stations-list" placeholder={dict.voterContact.searchStationsPlaceholder} dict={dict} locale={locale} />
         <div id="voter-contact-stations-list" className="space-y-2">
           {stations.map((s) => (
             <a
@@ -242,7 +242,7 @@ export default async function VoterContactPage({
 
       <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
         <div>
-          <ListSearch scopeId="voter-contact-communes-list" placeholder={dict.voterContact.searchCommunesPlaceholder} />
+          <ListSearch scopeId="voter-contact-communes-list" placeholder={dict.voterContact.searchCommunesPlaceholder} dict={dict} locale={locale} />
           <div id="voter-contact-communes-list" className="space-y-2">
             {rows.map((r) => (
               <a

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
 type StationOption = { id: string; label: string };
 
@@ -31,15 +32,21 @@ export default function StationCombobox({
   name,
   defaultValue,
   defaultLabel,
-  placeholder = "بحث عن مكتب تصويت…",
+  placeholder,
   className,
+  dict,
 }: {
   name: string;
   defaultValue?: string | null;
   defaultLabel?: string | null;
   placeholder?: string;
   className?: string;
+  dict?: Dictionary;
 }) {
+  const resolvedPlaceholder = placeholder ?? dict?.common.stationComboboxPlaceholder ?? "بحث عن مكتب تصويت…";
+  const noAssignmentText = dict?.common.stationComboboxNoAssignment ?? "— بلا إسناد —";
+  const loadingText = dict?.common.stationComboboxLoading ?? "كنجيب اللائحة…";
+  const noResultsText = dict?.common.stationComboboxNoResults ?? "ماكاينش نتائج.";
   const [selectedId, setSelectedId] = useState(defaultValue ?? "");
   const [query, setQuery] = useState(defaultLabel ?? "");
   const [open, setOpen] = useState(false);
@@ -100,7 +107,7 @@ export default function StationCombobox({
       <input
         type="text"
         value={query}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         onFocus={handleFocus}
         onChange={(e) => {
           setQuery(e.target.value);
@@ -120,9 +127,9 @@ export default function StationCombobox({
             }}
             className="w-full text-right px-3 py-2 text-sm text-[var(--muted)] hover:bg-[var(--bg)] border-b border-[var(--border)]"
           >
-            — بلا إسناد —
+            {noAssignmentText}
           </button>
-          {loading && <div className="px-3 py-2 text-sm text-[var(--muted)]">كنجيب اللائحة…</div>}
+          {loading && <div className="px-3 py-2 text-sm text-[var(--muted)]">{loadingText}</div>}
           {!loading &&
             results.map((s) => (
               <button
@@ -141,7 +148,7 @@ export default function StationCombobox({
               </button>
             ))}
           {!loading && results.length === 0 && (
-            <div className="px-3 py-2 text-sm text-[var(--muted)]">ماكاينش نتائج.</div>
+            <div className="px-3 py-2 text-sm text-[var(--muted)]">{noResultsText}</div>
           )}
         </div>
       )}

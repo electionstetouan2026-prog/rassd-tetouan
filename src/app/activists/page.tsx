@@ -30,7 +30,7 @@ export default async function ActivistsPage({
   const statusFilter = params.status ?? "all";
   const communeFilter = params.commune ?? "all";
 
-  const { dict } = await getDictionary();
+  const { dict, locale } = await getDictionary();
   const STATUS_LABEL: Record<string, string> = {
     "نشيط": dict.volunteers.statusActive,
     "فالانتظار": dict.volunteers.statusPending,
@@ -180,7 +180,7 @@ export default async function ActivistsPage({
         ))}
       </div>
 
-      <ListSearch scopeId="activists-list" placeholder={dict.activists.searchPlaceholder} />
+      <ListSearch scopeId="activists-list" placeholder={dict.activists.searchPlaceholder} dict={dict} locale={locale} />
       <div id="activists-list" className="grid md:grid-cols-2 gap-4">
         {filtered.map((a: any) => (
           <div key={a.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">

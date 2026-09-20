@@ -282,7 +282,7 @@ export default async function DigitalWatchPage({
         ))}
       </div>
 
-      <ListSearch scopeId="digital-watch-list" placeholder={dict.digitalWatch.searchPlaceholder} />
+      <ListSearch scopeId="digital-watch-list" placeholder={dict.digitalWatch.searchPlaceholder} dict={dict} locale={locale} />
       <div id="digital-watch-list" className="grid md:grid-cols-2 gap-4">
         {filteredEntries.map((e: any) => (
           <div key={e.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">

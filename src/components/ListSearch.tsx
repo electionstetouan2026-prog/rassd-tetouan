@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { IconSearch } from "@/components/icons";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
 /**
  * أداة بحث فورية (client-side، بلا أي طلب جديد للسيرفر) — كتفلتر
@@ -19,19 +20,27 @@ export default function ListSearch({
   scopeId,
   placeholder = "بحث...",
   className = "",
+  dict,
+  locale = "ar",
 }: {
   scopeId: string;
   placeholder?: string;
   className?: string;
+  dict?: Dictionary;
+  locale?: string;
 }) {
   const [query, setQuery] = useState("");
   const [matchCount, setMatchCount] = useState<number | null>(null);
+  const dir = locale === "fr" ? "ltr" : "rtl";
+  const clearSearchLabel = dict?.common.clearSearchAriaLabel ?? "مسح البحث";
+  const noMatchingResultsText = dict?.common.noMatchingResults ?? "ماكاينش أي نتيجة مطابقة";
+  const matchingResultsSuffixText = dict?.common.matchingResultsSuffix ?? "نتيجة مطابقة";
 
   useEffect(() => {
     const scope = document.getElementById(scopeId);
     if (!scope) return;
 
-    const q = query.trim().toLocaleLowerCase("ar");
+    const q = query.trim().toLocaleLowerCase(locale);
     const items = Array.from(scope.querySelectorAll<HTMLElement>("[data-search-item]"));
     const groups = Array.from(scope.querySelectorAll<HTMLElement>("[data-search-group]"));
 
@@ -48,7 +57,7 @@ export default function ListSearch({
 
     let visibleCount = 0;
     items.forEach((el) => {
-      const text = (el.dataset.searchText ?? el.textContent ?? "").toLocaleLowerCase("ar");
+      const text = (el.dataset.searchText ?? el.textContent ?? "").toLocaleLowerCase(locale);
       const match = text.includes(q);
       el.hidden = !match;
       if (match) {
@@ -69,7 +78,7 @@ export default function ListSearch({
     });
 
     setMatchCount(visibleCount);
-  }, [query, scopeId]);
+  }, [query, scopeId, locale]);
 
   return (
     <div className={`relative mb-4 ${className}`}>
@@ -82,14 +91,14 @@ export default function ListSearch({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={placeholder}
-          dir="rtl"
+          dir={dir}
           className="w-full rounded-lg border border-[var(--border)] bg-[var(--card)] pr-10 pl-9 py-2.5 text-sm focus:border-[var(--brand-blue)] focus:outline-none"
         />
         {query && (
           <button
             type="button"
             onClick={() => setQuery("")}
-            aria-label="مسح البحث"
+            aria-label={clearSearchLabel}
             className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)] text-xs font-extrabold hover:text-[var(--text)]"
           >
             ×
@@ -98,7 +107,7 @@ export default function ListSearch({
       </div>
       {query && (
         <div className="text-xs text-[var(--muted)] mt-1.5">
-          {matchCount === 0 ? "ماكاينش أي نتيجة مطابقة" : `${matchCount} نتيجة مطابقة`}
+          {matchCount === 0 ? noMatchingResultsText : `${matchCount} ${matchingResultsSuffixText}`}
         </div>
       )}
     </div>

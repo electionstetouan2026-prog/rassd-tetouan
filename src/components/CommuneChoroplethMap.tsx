@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import "leaflet/dist/leaflet.css";
 import { COMMUNE_NAME_TO_OSM_RELATION_ID } from "@/lib/communeGeoMapping";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
 export type CommuneMapDatum = {
   id: string;
@@ -18,9 +19,19 @@ function scoreColor(score: number | null): string {
   return "#dc2626"; // أحمر
 }
 
-export default function CommuneChoroplethMap({ data }: { data: CommuneMapDatum[] }) {
+export default function CommuneChoroplethMap({
+  data,
+  dict,
+  locale = "ar",
+}: {
+  data: CommuneMapDatum[];
+  dict?: Dictionary;
+  locale?: string;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<import("leaflet").Map | null>(null);
+  const dir = locale === "fr" ? "ltr" : "rtl";
+  const noIndicatorYetText = dict?.strongholdMap.mapNoIndicatorYet ?? "بلا مؤشر بعد";
 
   useEffect(() => {
     let cancelled = false;
@@ -65,9 +76,10 @@ export default function CommuneChoroplethMap({ data }: { data: CommuneMapDatum[]
           const relId = feature?.properties?.osmRelationId as number | undefined;
           const datum = relId != null ? byRelationId.get(relId) : undefined;
           const name = datum?.name ?? feature?.properties?.nameAr ?? "—";
-          const scoreText = datum?.score != null ? `${Math.round(datum.score)}/100` : "بلا مؤشر بعد";
+          const scoreText = datum?.score != null ? `${Math.round(datum.score)}/100` : noIndicatorYetText;
+          const textAlign = dir === "rtl" ? "right" : "left";
           layer.bindPopup(
-            `<div style="font-family:inherit;text-align:right;direction:rtl">
+            `<div style="font-family:inherit;text-align:${textAlign};direction:${dir}">
               <strong>${name}</strong><br/>
               <span>${scoreText}</span>
               ${datum?.hint ? `<br/><span style="font-size:11px;color:#666">${datum.hint}</span>` : ""}
@@ -97,12 +109,12 @@ export default function CommuneChoroplethMap({ data }: { data: CommuneMapDatum[]
   return (
     <div className="relative">
       <div ref={containerRef} style={{ height: 460, width: "100%", background: "#eef1f5" }} className="rounded-lg" />
-      <div className="absolute bottom-2 left-2 z-[1000] rounded-lg bg-white/95 border border-[var(--border)] px-3 py-2 text-xs shadow-sm">
-        <div className="font-bold mb-1 text-[var(--heading)]">المؤشر</div>
-        <div className="flex items-center gap-1.5 mb-0.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#16a34a" }} /> قوي (60+)</div>
-        <div className="flex items-center gap-1.5 mb-0.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#f59e0b" }} /> متوسط (35-59)</div>
-        <div className="flex items-center gap-1.5 mb-0.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#dc2626" }} /> ضعيف (&lt;35)</div>
-        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#c7ccd4" }} /> بلا بيانات بعد</div>
+      <div className="absolute bottom-2 left-2 z-[1000] rounded-lg bg-white/95 border border-[var(--border)] px-3 py-2 text-xs shadow-sm" dir={dir}>
+        <div className="font-bold mb-1 text-[var(--heading)]">{dict?.strongholdMap.mapLegendTitle ?? "المؤشر"}</div>
+        <div className="flex items-center gap-1.5 mb-0.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#16a34a" }} /> {dict?.strongholdMap.mapLegendStrong ?? "قوي (60+)"}</div>
+        <div className="flex items-center gap-1.5 mb-0.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#f59e0b" }} /> {dict?.strongholdMap.mapLegendMedium ?? "متوسط (35-59)"}</div>
+        <div className="flex items-center gap-1.5 mb-0.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#dc2626" }} /> {dict?.strongholdMap.mapLegendWeak ?? "ضعيف (<35)"}</div>
+        <div className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-sm inline-block" style={{ background: "#c7ccd4" }} /> {dict?.strongholdMap.mapLegendNoData ?? "بلا بيانات بعد"}</div>
       </div>
     </div>
   );

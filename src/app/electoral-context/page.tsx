@@ -246,7 +246,7 @@ export default async function ElectoralContextPage() {
       <div className="grid md:grid-cols-2 gap-5">
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
           <h2 className="font-extrabold text-[var(--heading)] mb-3">{dict.electoralContext.currentOfficialsTitle} ({currentOfficials.length})</h2>
-          <ListSearch scopeId="current-officials-list" placeholder={dict.electoralContext.searchOfficialsPlaceholder} />
+          <ListSearch scopeId="current-officials-list" placeholder={dict.electoralContext.searchOfficialsPlaceholder} dict={dict} locale={locale} />
           <div id="current-officials-list" className="divide-y divide-[var(--border)]">
             {currentOfficials.map((o) => (
               <div key={o.id} data-search-item className="flex items-start justify-between gap-3 py-3">
@@ -277,7 +277,7 @@ export default async function ElectoralContextPage() {
 
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
           <h2 className="font-extrabold text-[var(--heading)] mb-3">{dict.electoralContext.historicalNamesTitle} ({historicalOfficials.length})</h2>
-          <ListSearch scopeId="historical-officials-list" placeholder={dict.electoralContext.searchOfficialsPlaceholder} />
+          <ListSearch scopeId="historical-officials-list" placeholder={dict.electoralContext.searchOfficialsPlaceholder} dict={dict} locale={locale} />
           <div id="historical-officials-list" className="divide-y divide-[var(--border)]">
             {historicalOfficials.map((o) => (
               <div key={o.id} data-search-item className="flex items-start justify-between gap-3 py-3">

@@ -201,7 +201,7 @@ export default async function RankingPage({
         </a>
       </div>
 
-      <ListSearch scopeId="ranking-list" placeholder={dict.ranking.searchCommunePlaceholder} />
+      <ListSearch scopeId="ranking-list" placeholder={dict.ranking.searchCommunePlaceholder} dict={dict} locale={locale} />
       <div id="ranking-list" className="grid md:grid-cols-2 gap-4">
         {visibleRows.map((r) => (
           <div key={r.commune.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">

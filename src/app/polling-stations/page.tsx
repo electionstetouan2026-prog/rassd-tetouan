@@ -156,7 +156,7 @@ export default async function PollingStationsPage({
         ))}
       </div>
 
-      <ListSearch scopeId="polling-stations-list" placeholder={dict.pollingStations.searchPlaceholder} />
+      <ListSearch scopeId="polling-stations-list" placeholder={dict.pollingStations.searchPlaceholder} dict={dict} locale={locale} />
       <div id="polling-stations-list" className="space-y-4">
         {filteredCommunes.map((c) => {
           const communeStations = (stationsByCommune.get(c.id) ?? []).filter(

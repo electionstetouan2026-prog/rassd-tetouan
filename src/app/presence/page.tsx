@@ -246,7 +246,7 @@ export default async function PresencePage({
         ))}
       </div>
 
-      <ListSearch scopeId="presence-list" placeholder={dict.presence.searchPlaceholder} />
+      <ListSearch scopeId="presence-list" placeholder={dict.presence.searchPlaceholder} dict={dict} locale={locale} />
       <div id="presence-list" className="space-y-4">
         {filteredCommunes.map((c) => {
           const communeZones = zonesByCommune.get(c.id) ?? [];

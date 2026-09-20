@@ -163,10 +163,12 @@ export default async function StrongholdMapPage() {
             score: r.compositeScore,
             hint: r.dataComponents === 0 ? dict.strongholdMap.mapNoDataHint : undefined,
           }))}
+          dict={dict}
+          locale={locale}
         />
       </section>
 
-      <ListSearch scopeId="stronghold-list" placeholder={dict.strongholdMap.searchPlaceholder} />
+      <ListSearch scopeId="stronghold-list" placeholder={dict.strongholdMap.searchPlaceholder} dict={dict} locale={locale} />
       <div id="stronghold-list" className="grid md:grid-cols-2 gap-4">
         {rows.map((row) => (
           <Card key={row.commune.id} row={row} dict={dict} numberLocale={numberLocale} communeTypeLabel={communeTypeLabel} />

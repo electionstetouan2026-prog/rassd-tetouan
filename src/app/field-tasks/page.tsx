@@ -192,7 +192,7 @@ export default async function FieldTasksPage({
         </a>
       </div>
 
-      <ListSearch scopeId="field-tasks-list" placeholder={dict.fieldTasks.searchPlaceholder} />
+      <ListSearch scopeId="field-tasks-list" placeholder={dict.fieldTasks.searchPlaceholder} dict={dict} locale={locale} />
       <div id="field-tasks-list" className="grid md:grid-cols-2 gap-4">
         {filteredTasks.map((t: any) => (
           <div key={t.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
