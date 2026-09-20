@@ -8,6 +8,7 @@ import { generateRankingSummary } from "./actions";
 import AiSummaryBox from "./AiSummaryBox";
 import ListSearch from "@/components/ListSearch";
 import Link from "next/link";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,12 @@ export default async function RankingPage({
 }: {
   searchParams: Promise<{ view?: string }>;
 }) {
+  const { dict, locale } = await getDictionary();
+  const dateLocale = locale === "fr" ? "fr-FR" : "ar-MA";
+  const COMMUNE_TYPE_LABEL: Record<string, string> = {
+    "حضري": dict.presence.urban,
+    "قروي": dict.presence.rural,
+  };
   const params = await searchParams;
   const view = params.view ?? "attention"; // attention | all
 
@@ -41,13 +48,13 @@ export default async function RankingPage({
 
   return (
     <PageShell
-      title="الترتيب التنافسي"
-      subtitle="تقدير يومي مفترض لموقعنا مقابل الأحزاب المنافسة — يجمع حضور الأحياء واليقظة الرقمية (تقدير اجتهادي من الفريق، ماشي استطلاع علمي)"
+      title={dict.ranking.title}
+      subtitle={dict.ranking.subtitle}
       icon={<IconChart />}
     >
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 flex items-center justify-between flex-wrap gap-4 shadow-sm">
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">جماعات فيها بيانات ميدانية</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.ranking.statCommunesWithFieldData}</div>
           <div className="text-[28px] font-extrabold text-[var(--heading)]">
             {communesWithFieldData} / {communes.length}
           </div>
@@ -55,43 +62,41 @@ export default async function RankingPage({
         <div className="text-sm text-[var(--muted)]">
           {totalUrgentOpen > 0 ? (
             <span className="font-bold" style={{ color: "var(--severity-high)" }}>
-              {totalUrgentOpen} إشارة عاجلة بدون معالجة (كل الجماعات)
+              {totalUrgentOpen} {dict.ranking.urgentSignalsSuffix}
             </span>
           ) : (
-            "لا توجد إشارات عاجلة معلقة حاليا"
+            dict.ranking.noUrgentSignals
           )}
         </div>
       </div>
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 shadow-sm">
         <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-          <h2 className="text-lg font-extrabold text-[var(--heading)]">الترتيب الرقمي التنافسي</h2>
+          <h2 className="text-lg font-extrabold text-[var(--heading)]">{dict.ranking.digitalRankingTitle}</h2>
           <div className="flex items-center gap-3 flex-wrap">
             <Link href="/candidates" className="text-sm text-[var(--brand-blue)] font-semibold underline">
-              ملفات المرشحين ↗
+              {dict.ranking.candidatesLinkLabel}
             </Link>
             <Link href="/digital-watch/import-polibrand" className="text-sm text-[var(--brand-blue)] font-semibold underline">
-              استيراد بيانات جديدة من بوليبراند ↗
+              {dict.ranking.importPolibrandLinkLabel}
             </Link>
           </div>
         </div>
         <p className="text-sm text-[var(--muted)] mb-4">
-          من كيهيمن على الفضاء الرقمي على مستوى الدائرة كاملة (آخر {digitalRanking.windowDays} يوم) — الترتيب مبني
-          على "تأثير مقدَّر" (تفاعل + انتشار المصدر، محسوب بالذكاء الاصطناعي) ماشي مجرد عدد الإشارات الخام، نحن
-          مقابل كل منافس (بما فيهم أسماء مكتشفة تلقائيا ماكانتش متوقعة). "الوزن البنيوي" المعروض بجانبه مؤشر منفصل
-          ومستقل كليا على بوليبراند — مبني على منصب المرشح الحالي وتاريخه الانتخابي (
+          {dict.ranking.digitalIntroPart1}
+          {digitalRanking.windowDays}
+          {dict.ranking.digitalIntroDaysSuffix}
           <Link href="/candidates" className="underline">
-            تعديل من هنا
+            {dict.ranking.editFromHereLink}
           </Link>
-          )، باش لا يختفي مرشح حقيقي من الترتيب لمجرد أن بوليبراند ما غطاهش. تقدير اجتهادي، ماشي استطلاع رأي علمي،
-          وماشي بديل عن الحضور الميداني أسفله.
+          {dict.ranking.digitalIntroPart3}
           {digitalRanking.analyzedShare < 1 && (
             <>
               {" "}
-              ({Math.round(digitalRanking.analyzedShare * 100)}% من إشارات هاد الفترة دار عليها تحليل AI فعليا،
-              الباقي بوزن افتراضي مؤقت —{" "}
+              ({Math.round(digitalRanking.analyzedShare * 100)}
+              {dict.ranking.analyzedSharePctSuffix}
               <Link href="/digital-watch/import-polibrand" className="underline">
-                تابع التحليل من هنا
+                {dict.ranking.continueAnalysisLink}
               </Link>
               .)
             </>
@@ -117,7 +122,7 @@ export default async function RankingPage({
                       {r.currentPosition ?? ""}
                     </span>
                   )}
-                  {r.isNewlyDiscovered && <span className="mr-2 text-xs opacity-80">🆕 مكتشف تلقائيا</span>}
+                  {r.isNewlyDiscovered && <span className="mr-2 text-xs opacity-80">{dict.ranking.newlyDiscoveredBadge}</span>}
                   {r.trend && <span className="mr-2 opacity-80">{TREND_ICON[r.trend]}</span>}
                 </span>
                 <span className="flex items-center gap-3 font-semibold">
@@ -128,8 +133,8 @@ export default async function RankingPage({
                     {"  "}
                     {SENTIMENT_ICON["سلبي"]} {r.sentimentCounts["سلبي"]}
                   </span>
-                  <span className="text-xs opacity-80">{r.currentCount} إشارة</span>
-                  <span className="font-extrabold">تأثير: {r.estimatedInfluence}</span>
+                  <span className="text-xs opacity-80">{r.currentCount} {dict.ranking.signalsUnit}</span>
+                  <span className="font-extrabold">{dict.ranking.estimatedInfluenceLabel} {r.estimatedInfluence}</span>
                   {r.baselineStrength != null && (
                     <span
                       className="text-xs font-bold rounded-full px-2.5 py-1"
@@ -137,9 +142,9 @@ export default async function RankingPage({
                         background: r.isUs ? "rgba(255,255,255,0.2)" : "var(--card)",
                         border: r.isUs ? "none" : "1px solid var(--border)",
                       }}
-                      title="الوزن السياسي البنيوي — منصب/تاريخ انتخابي، مستقل عن إشارات بوليبراند"
+                      title={dict.ranking.structuralWeightTooltip}
                     >
-                      وزن بنيوي: {r.baselineStrength}
+                      {dict.ranking.structuralWeightLabel} {r.baselineStrength}
                     </span>
                   )}
                 </span>
@@ -148,9 +153,9 @@ export default async function RankingPage({
           </div>
         ) : (
           <p className="text-sm text-[var(--muted)]">
-            ماكاينش بيانات مستوردة بعد من بوليبراند —{" "}
+            {dict.ranking.noDigitalDataMessage}
             <Link href="/digital-watch/import-polibrand" className="text-[var(--brand-blue)] underline">
-              استورد أول ملف من هنا
+              {dict.ranking.importFirstFileLink}
             </Link>
             .
           </p>
@@ -158,6 +163,8 @@ export default async function RankingPage({
       </section>
 
       <AiSummaryBox
+        dict={dict}
+        dateLocale={dateLocale}
         summaryText={todaySummary?.summary_text ?? null}
         model={todaySummary?.model ?? null}
         generatedAt={todaySummary?.created_at ?? null}
@@ -167,7 +174,7 @@ export default async function RankingPage({
 
       {unassignedEntries.length > 0 && (
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 mb-6 text-sm text-[var(--muted)]">
-          {unassignedEntries.length} تسجيل يقظة رقمية بلا جماعة محددة — ماشي محسوبين فالترتيب أسفله.
+          {unassignedEntries.length} {dict.ranking.unassignedEntriesSuffix}
         </div>
       )}
 
@@ -180,7 +187,7 @@ export default async function RankingPage({
               : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
           }`}
         >
-          تحتاج انتباه ({communeRows.filter((r) => r.needsAttention).length})
+          {dict.ranking.needsAttentionTab} ({communeRows.filter((r) => r.needsAttention).length})
         </a>
         <a
           href="/ranking?view=all"
@@ -190,11 +197,11 @@ export default async function RankingPage({
               : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
           }`}
         >
-          كل الجماعات ({communes.length})
+          {dict.ranking.allCommunesTab} ({communes.length})
         </a>
       </div>
 
-      <ListSearch scopeId="ranking-list" placeholder="بحث باسم الجماعة..." />
+      <ListSearch scopeId="ranking-list" placeholder={dict.ranking.searchCommunePlaceholder} />
       <div id="ranking-list" className="grid md:grid-cols-2 gap-4">
         {visibleRows.map((r) => (
           <div key={r.commune.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
@@ -202,8 +209,8 @@ export default async function RankingPage({
               <div>
                 <div className="font-extrabold text-[16px] text-[var(--heading)]">{r.commune.name}</div>
                 <div className="text-sm text-[var(--muted)] mt-0.5">
-                  {r.commune.type}
-                  {r.commune.leading_party_2021 ? ` · خط أساس 2021: ${r.commune.leading_party_2021} (${r.commune.leading_party_pct_2021}%)` : ""}
+                  {COMMUNE_TYPE_LABEL[r.commune.type] ?? r.commune.type}
+                  {r.commune.leading_party_2021 ? `${dict.ranking.baseline2021Prefix}${r.commune.leading_party_2021} (${r.commune.leading_party_pct_2021}%)` : ""}
                 </div>
               </div>
               {r.urgentOpen > 0 && (
@@ -211,7 +218,7 @@ export default async function RankingPage({
                   className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
                   style={{ background: "var(--severity-high)" }}
                 >
-                  {r.urgentOpen} عاجل
+                  {r.urgentOpen} {dict.ranking.urgentBadgeSuffix}
                 </span>
               )}
             </div>
@@ -219,7 +226,7 @@ export default async function RankingPage({
             {r.hasFieldData ? (
               <div className="mb-3">
                 <div className="text-xs font-bold text-[var(--muted)] mb-1.5">
-                  ترتيب مفترض حسب عدد المكاتب/الأحياء المرصودة ({r.zonesCount} حي مُدخل)
+                  {dict.ranking.fieldRankingTitlePrefix}{r.zonesCount}{dict.ranking.fieldRankingTitleSuffix}
                 </div>
                 <div className="space-y-1.5">
                   {r.ranking.map((p, i) => (
@@ -240,14 +247,14 @@ export default async function RankingPage({
                 </div>
                 {r.ourPresenceAvg != null && (
                   <div className="text-xs text-[var(--muted)] mt-1.5">
-                    متوسط نسبة حضورنا فالأحياء المُدخلة: {r.ourPresenceAvg.toFixed(0)}%
+                    {dict.ranking.ourPresenceAvgLabel}{r.ourPresenceAvg.toFixed(0)}%
                   </div>
                 )}
               </div>
             ) : (
               <p className="text-sm text-[var(--muted)] mb-3">
-                لا توجد بيانات حضور أحياء مُدخلة بعد لهاد الجماعة — الترتيب المفترض مؤجل لحين تعبئة{" "}
-                <a href="/presence" className="text-[var(--brand-blue)] underline">خريطة الحضور</a>.
+                {dict.ranking.noFieldDataPart1}
+                <a href="/presence" className="text-[var(--brand-blue)] underline">{dict.ranking.presenceMapLink}</a>.
               </p>
             )}
 
@@ -260,21 +267,21 @@ export default async function RankingPage({
                     {SENTIMENT_ICON["محايد"]} {r.sentimentCounts["محايد"]}
                     {"  "}
                     {SENTIMENT_ICON["سلبي"]} {r.sentimentCounts["سلبي"]}
-                    {" · اليقظة الرقمية"}
+                    {dict.ranking.digitalWatchSuffix}
                   </>
                 ) : (
-                  "بلا تسجيلات يقظة رقمية بعد"
+                  dict.ranking.noDigitalRecordsYet
                 )}
               </span>
               <a href={`/digital-watch`} className="text-[var(--brand-blue)] font-semibold underline">
-                عرض التسجيلات ↗
+                {dict.ranking.viewRecordsLink}
               </a>
             </div>
           </div>
         ))}
         {visibleRows.length === 0 && (
           <p className="text-[15px] text-[var(--muted)] md:col-span-2">
-            {view === "attention" ? "ماكاينش جماعات محتاجة انتباه دابا — الوضع مستقر." : "ماكاينش جماعات."}
+            {view === "attention" ? dict.ranking.noAttentionCommunes : dict.ranking.noCommunesAtAll}
           </p>
         )}
       </div>
