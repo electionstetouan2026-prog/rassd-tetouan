@@ -4,18 +4,13 @@ import { addDigitalWatchEntry, updateDigitalWatchStatus } from "./actions";
 import { IconEye, IconUpload } from "@/components/icons";
 import ListSearch from "@/components/ListSearch";
 import Link from "next/link";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
 const PLATFORMS = ["فيسبوك", "انستغرام", "تيك توك", "صحافة/موقع", "أخرى"];
 const SENTIMENTS = ["إيجابي", "محايد", "سلبي"];
 const PRIORITIES = ["عادي", "مهم", "عاجل"];
-const STATUS_LABEL: Record<string, string> = {
-  "جديد": "جديد",
-  "قيد المعالجة": "قيد المعالجة",
-  "تمت المعالجة": "تمت المعالجة",
-  "مؤرشف": "مؤرشف",
-};
 const STATUS_COLOR: Record<string, string> = {
   "جديد": "var(--severity-high)",
   "قيد المعالجة": "var(--severity-medium)",
@@ -28,11 +23,6 @@ const PRIORITY_COLOR: Record<string, string> = {
   "مهم": "var(--severity-medium)",
   "عاجل": "var(--severity-high)",
 };
-const SENTIMENT_LABEL: Record<string, string> = {
-  "إيجابي": "🟢 إيجابي",
-  "محايد": "⚪ محايد",
-  "سلبي": "🔴 سلبي",
-};
 
 export default async function DigitalWatchPage({
   searchParams,
@@ -43,6 +33,32 @@ export default async function DigitalWatchPage({
   const statusFilter = params.status ?? "all";
   const priorityFilter = params.priority ?? "all";
   const platformFilter = params.platform ?? "all";
+
+  const { dict, locale } = await getDictionary();
+  const dateLocale = locale === "fr" ? "fr-FR" : "ar-MA";
+  const STATUS_LABEL: Record<string, string> = {
+    "جديد": dict.digitalWatch.statusNew,
+    "قيد المعالجة": dict.digitalWatch.statusInProgress,
+    "تمت المعالجة": dict.digitalWatch.statusProcessed,
+    "مؤرشف": dict.digitalWatch.statusArchived,
+  };
+  const PLATFORM_LABEL: Record<string, string> = {
+    "فيسبوك": dict.digitalWatch.platformFacebook,
+    "انستغرام": dict.digitalWatch.platformInstagram,
+    "تيك توك": dict.digitalWatch.platformTiktok,
+    "صحافة/موقع": dict.digitalWatch.platformPressWebsite,
+    "أخرى": dict.digitalWatch.platformOther,
+  };
+  const SENTIMENT_LABEL: Record<string, string> = {
+    "إيجابي": dict.digitalWatch.sentimentPositive,
+    "محايد": dict.digitalWatch.sentimentNeutral,
+    "سلبي": dict.digitalWatch.sentimentNegative,
+  };
+  const PRIORITY_LABEL: Record<string, string> = {
+    "عادي": dict.digitalWatch.priorityNormal,
+    "مهم": dict.digitalWatch.priorityImportant,
+    "عاجل": dict.digitalWatch.priorityUrgent,
+  };
 
   const supabase = await createClient();
   const today = new Date().toISOString().slice(0, 10);
@@ -83,41 +99,41 @@ export default async function DigitalWatchPage({
 
   return (
     <PageShell
-      title="اليقظة الرقمية"
-      subtitle="تسجيل يدوي لما يُلاحظ فالفضاء الرقمي — فيسبوك، انستغرام، صحافة — مع أولوية ومتابعة الحالة"
+      title={dict.digitalWatch.title}
+      subtitle={dict.digitalWatch.subtitle}
       icon={<IconEye />}
     >
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 flex items-center justify-between flex-wrap gap-4 shadow-sm">
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">تسجيلات اليوم</div>
-          <div className="text-[28px] font-extrabold text-[var(--heading)]">{todayCount} تسجيل</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.digitalWatch.todayEntriesLabel}</div>
+          <div className="text-[28px] font-extrabold text-[var(--heading)]">{todayCount} {dict.digitalWatch.entryUnit}</div>
         </div>
         <div className="text-sm text-[var(--muted)]">
           {urgentOpenCount > 0 ? (
             <span className="font-bold" style={{ color: "var(--severity-high)" }}>
-              {urgentOpenCount} عاجل بدون معالجة
+              {urgentOpenCount} {dict.digitalWatch.urgentOpenSuffix}
             </span>
           ) : (
-            "لا توجد حالات عاجلة معلقة"
+            dict.digitalWatch.noPendingUrgent
           )}
           {" · "}
-          {entries.length} تسجيل مجموع
+          {entries.length} {dict.digitalWatch.totalEntriesSuffix}
         </div>
         <Link
           href="/digital-watch/import-polibrand"
           className="flex items-center gap-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition text-sm"
         >
           <IconUpload />
-          استيراد من بوليبراند
+          {dict.digitalWatch.importFromPolibrand}
         </Link>
       </div>
 
       <section className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">تسجيل ملاحظة جديدة</h2>
+        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">{dict.digitalWatch.addEntryTitle}</h2>
         <form action={addDigitalWatchEntry} className="grid grid-cols-2 gap-3 mb-2">
           <textarea
             name="content_summary"
-            placeholder="ملخص المحتوى/الملاحظة (إجباري)"
+            placeholder={dict.digitalWatch.contentSummaryPlaceholder}
             required
             rows={2}
             className="col-span-2 rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
@@ -135,23 +151,23 @@ export default async function DigitalWatchPage({
           >
             {PLATFORMS.map((p) => (
               <option key={p} value={p}>
-                {p}
+                {PLATFORM_LABEL[p] ?? p}
               </option>
             ))}
           </select>
           <input
             name="source_name"
-            placeholder="اسم الحساب/الصفحة/الموقع (اختياري)"
+            placeholder={dict.digitalWatch.sourceNamePlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="content_url"
-            placeholder="رابط المنشور/المقال (اختياري)"
+            placeholder={dict.digitalWatch.contentUrlPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="attachment_url"
-            placeholder="رابط لقطة شاشة/PDF مرفوع خارجيا (اختياري)"
+            placeholder={dict.digitalWatch.attachmentUrlPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <select
@@ -159,7 +175,7 @@ export default async function DigitalWatchPage({
             defaultValue=""
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
           >
-            <option value="">— بلا جماعة محددة —</option>
+            <option value="">{dict.digitalWatch.noCommuneOption}</option>
             {allCommunes.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -173,7 +189,7 @@ export default async function DigitalWatchPage({
           >
             {SENTIMENTS.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {SENTIMENT_LABEL[s]?.replace(/^[^\s]+\s/, "") ?? s}
               </option>
             ))}
           </select>
@@ -184,17 +200,17 @@ export default async function DigitalWatchPage({
           >
             {PRIORITIES.map((p) => (
               <option key={p} value={p}>
-                {p}
+                {PRIORITY_LABEL[p] ?? p}
               </option>
             ))}
           </select>
           <input
             name="notes"
-            placeholder="ملاحظات إضافية (اختياري)"
+            placeholder={dict.digitalWatch.notesPlaceholder}
             className="col-span-2 rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <button className="col-span-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition">
-            + تسجيل الملاحظة
+            {dict.digitalWatch.addEntryButton}
           </button>
         </form>
       </section>
@@ -208,7 +224,7 @@ export default async function DigitalWatchPage({
               : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
           }`}
         >
-          كل المنصات ({platformCounts.all})
+          {dict.digitalWatch.allPlatformsLabel} ({platformCounts.all})
         </a>
         {PLATFORMS.map((p) => (
           <a
@@ -220,7 +236,7 @@ export default async function DigitalWatchPage({
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
             }`}
           >
-            {p} ({platformCounts[p] ?? 0})
+            {PLATFORM_LABEL[p] ?? p} ({platformCounts[p] ?? 0})
           </a>
         ))}
       </div>
@@ -236,7 +252,7 @@ export default async function DigitalWatchPage({
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
             }`}
           >
-            {tab === "all" ? "الكل" : STATUS_LABEL[tab]} ({statusCounts[tab] ?? 0})
+            {tab === "all" ? dict.common.all : STATUS_LABEL[tab]} ({statusCounts[tab] ?? 0})
           </a>
         ))}
       </div>
@@ -249,7 +265,7 @@ export default async function DigitalWatchPage({
               : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
           }`}
         >
-          كل الأولويات
+          {dict.digitalWatch.allPrioritiesLabel}
         </a>
         {PRIORITIES.map((p) => (
           <a
@@ -261,21 +277,21 @@ export default async function DigitalWatchPage({
                 : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
             }`}
           >
-            {p}
+            {PRIORITY_LABEL[p] ?? p}
           </a>
         ))}
       </div>
 
-      <ListSearch scopeId="digital-watch-list" placeholder="بحث بالمحتوى، المنصة، المصدر، الجماعة..." />
+      <ListSearch scopeId="digital-watch-list" placeholder={dict.digitalWatch.searchPlaceholder} />
       <div id="digital-watch-list" className="grid md:grid-cols-2 gap-4">
         {filteredEntries.map((e: any) => (
           <div key={e.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
             <div className="flex items-start justify-between gap-3 mb-2">
               <div>
                 <div className="text-sm font-bold text-[var(--muted)]">
-                  {new Date(e.entry_date).toLocaleDateString("ar-MA", { weekday: "long", day: "numeric", month: "long" })}
+                  {new Date(e.entry_date).toLocaleDateString(dateLocale, { weekday: "long", day: "numeric", month: "long" })}
                   {" · "}
-                  {e.platform}
+                  {PLATFORM_LABEL[e.platform] ?? e.platform}
                   {e.source_name ? ` · ${e.source_name}` : ""}
                   {e.communes?.name ? ` · ${e.communes.name}` : ""}
                 </div>
@@ -285,7 +301,7 @@ export default async function DigitalWatchPage({
                   className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white"
                   style={{ background: PRIORITY_COLOR[e.priority] }}
                 >
-                  {e.priority}
+                  {PRIORITY_LABEL[e.priority] ?? e.priority}
                 </span>
                 <span
                   className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white"
@@ -301,12 +317,12 @@ export default async function DigitalWatchPage({
               <div className="flex gap-3 text-sm mb-2 flex-wrap">
                 {e.content_url && (
                   <a href={e.content_url} target="_blank" rel="noreferrer" className="text-[var(--brand-blue)] font-semibold underline">
-                    رابط المنشور ↗
+                    {dict.digitalWatch.postLinkLabel}
                   </a>
                 )}
                 {e.attachment_url && (
                   <a href={e.attachment_url} target="_blank" rel="noreferrer" className="text-[var(--brand-blue)] font-semibold underline">
-                    مرفق (لقطة/PDF) ↗
+                    {dict.digitalWatch.attachmentLinkLabel}
                   </a>
                 )}
               </div>
@@ -329,7 +345,7 @@ export default async function DigitalWatchPage({
           </div>
         ))}
         {filteredEntries.length === 0 && (
-          <p className="text-[15px] text-[var(--muted)] md:col-span-2">ماكاينش تسجيلات تطابق هاد الفلترة.</p>
+          <p className="text-[15px] text-[var(--muted)] md:col-span-2">{dict.digitalWatch.noMatch}</p>
         )}
       </div>
     </PageShell>

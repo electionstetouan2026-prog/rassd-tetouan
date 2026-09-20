@@ -2,18 +2,19 @@
 
 import { useActionState } from "react";
 import { runPolibrandImportAction, type PolibrandImportState } from "./actions";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
-const SLOTS = [
-  { field: "presse_file", label: "ملف الصحافة (Presse)" },
-  { field: "facebook_file", label: "ملف فيسبوك (Facebook)" },
-  { field: "instagram_file", label: "ملف انستغرام (Instagram)" },
-];
-
-export default function PolibrandImportForm() {
+export default function PolibrandImportForm({ dict }: { dict: Dictionary }) {
   const [state, formAction, isPending] = useActionState<PolibrandImportState | null, FormData>(
     runPolibrandImportAction,
     null
   );
+
+  const SLOTS = [
+    { field: "presse_file", label: dict.importPolibrand.slotPresseLabel },
+    { field: "facebook_file", label: dict.importPolibrand.slotFacebookLabel },
+    { field: "instagram_file", label: dict.importPolibrand.slotInstagramLabel },
+  ];
 
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
@@ -35,7 +36,7 @@ export default function PolibrandImportForm() {
           disabled={isPending}
           className="mt-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition disabled:opacity-60"
         >
-          {isPending ? "جارٍ الاستيراد…" : "استيراد الملفات المختارة"}
+          {isPending ? dict.import.importingButton : dict.importPolibrand.importSelectedFilesButton}
         </button>
       </form>
 

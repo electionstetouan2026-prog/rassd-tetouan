@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { getPendingAnalysisCount, runMentionAiAnalysisBatch } from "./analyzeActions";
+import type { Dictionary } from "@/lib/i18n/getDictionary";
 
-export default function AiAnalysisRunner() {
+export default function AiAnalysisRunner({ dict }: { dict: Dictionary }) {
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
   const [totalAnalyzed, setTotalAnalyzed] = useState(0);
@@ -42,7 +43,7 @@ export default function AiAnalysisRunner() {
   if (!configured) {
     return (
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 shadow-sm text-sm text-[var(--muted)]">
-        تحليل الذكاء الاصطناعي (اكتشاف شخصيات جديدة + تقدير قوة التأثير) غير مفعّل — ماكاين حتى مفتاح API (Anthropic/Gemini/OpenAI) مضبوط.
+        {dict.importPolibrand.aiNotConfiguredMessage}
       </div>
     );
   }
@@ -51,10 +52,9 @@ export default function AiAnalysisRunner() {
     <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 shadow-sm">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h3 className="font-extrabold text-[var(--heading)] mb-1">تحليل الذكاء الاصطناعي للإشارات</h3>
+          <h3 className="font-extrabold text-[var(--heading)] mb-1">{dict.importPolibrand.aiAnalysisTitle}</h3>
           <p className="text-sm text-[var(--muted)]">
-            كيقرا نص كل إشارة (بلا التقيد بلائحة منافسين معروفة سلفا) باش يكتشف شخصيات سياسية جديدة، وكيقدر قوة
-            تأثير/انتشار كل إشارة — يُستعمل فالترتيب الرقمي التنافسي. تحليل: {totalAnalyzed} · باقي: {remaining ?? "…"}
+            {dict.importPolibrand.aiAnalysisDescPrefix} {totalAnalyzed} · {dict.importPolibrand.remainingLabel} {remaining ?? "…"}
           </p>
         </div>
         <button
@@ -62,7 +62,7 @@ export default function AiAnalysisRunner() {
           disabled={running || remaining === 0}
           className="rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition disabled:opacity-60 shrink-0"
         >
-          {running ? `جارٍ التحليل… (${processedThisRun})` : remaining === 0 ? "تم تحليل الكل" : "بدء/متابعة التحليل"}
+          {running ? `${dict.importPolibrand.analyzingButtonPrefix} (${processedThisRun})` : remaining === 0 ? dict.importPolibrand.allAnalyzedButton : dict.importPolibrand.startContinueAnalysisButton}
         </button>
       </div>
     </div>
