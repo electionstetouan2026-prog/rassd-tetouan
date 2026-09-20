@@ -4,6 +4,7 @@ import { addZone, deleteZone, updateZone, addCell, deleteCell } from "./actions"
 import { getCoverageData } from "@/lib/coverage";
 import { IconMap } from "@/components/icons";
 import ListSearch from "@/components/ListSearch";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,18 @@ export default async function PresencePage({
   const params = await searchParams;
   const typeFilter = params.type ?? "all";
 
+  const { dict, locale } = await getDictionary();
+  const numberLocale = locale === "fr" ? "fr-FR" : "ar";
+  const COMMUNE_TYPE_LABEL: Record<string, string> = {
+    "حضري": dict.presence.urban,
+    "قروي": dict.presence.rural,
+  };
+  const ZONE_TYPE_LABEL: Record<string, string> = {
+    "حي": dict.presence.zoneTypeHay,
+    "دوار": dict.presence.zoneTypeDouar,
+    "مدشر": dict.presence.zoneTypeMachar,
+  };
+
   const supabase = await createClient();
 
   const [{ data: communesRaw }, { data: zonesRaw }, { data: cellsRaw }, localitiesRaw, coverage] =
@@ -161,24 +174,24 @@ export default async function PresencePage({
 
   return (
     <PageShell
-      title="خريطة الحضور"
-      subtitle="حضورنا الميداني مقابل الأحزاب المنافسة، على مستوى الحي/الدوار/المدشر، مع خط أساس تاريخي حقيقي من انتخابات 2021"
+      title={dict.presence.title}
+      subtitle={dict.presence.subtitle}
       icon={<IconMap />}
     >
       <div className="flex flex-wrap gap-3 mb-6">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-4 shadow-sm">
           <div className="text-2xl font-extrabold text-[var(--heading)]">{totalZones}</div>
-          <div className="text-sm font-bold text-[var(--muted)]">مناطق مُدخلة</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.presence.statZonesEntered}</div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-4 shadow-sm">
           <div className="text-2xl font-extrabold text-[var(--heading)]">
-            {communesWithZones} من {communes.length}
+            {communesWithZones} {dict.presence.of} {communes.length}
           </div>
-          <div className="text-sm font-bold text-[var(--muted)]">جماعات فيها بيانات حضور</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.presence.statCommunesWithData}</div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] px-6 py-4 shadow-sm">
           <div className="text-2xl font-extrabold text-[var(--heading)]">{totalOurOffices}</div>
-          <div className="text-sm font-bold text-[var(--muted)]">إجمالي مكاتبنا المصرح بها</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.presence.statTotalOffices}</div>
         </div>
         <div
           className="rounded-xl border px-6 py-4 shadow-sm"
@@ -188,7 +201,7 @@ export default async function PresencePage({
             {pctRaw(coverage.overall.fieldCoveragePct)}
           </div>
           <div className="text-sm font-bold text-[var(--muted)]">
-            التغطية الميدانية (خلايا) — {coverage.overall.zonesWithCells}/{coverage.overall.totalZones} منطقة
+            {dict.presence.fieldCoverageLabel} {coverage.overall.zonesWithCells}/{coverage.overall.totalZones} {dict.presence.zonesUnit}
           </div>
         </div>
         <div
@@ -199,23 +212,20 @@ export default async function PresencePage({
             {pctRaw(coverage.overall.electionDayCoveragePct)}
           </div>
           <div className="text-sm font-bold text-[var(--muted)]">
-            تغطية يوم الاقتراع (مراقبون) — {coverage.overall.coveredStations}/{coverage.overall.totalStations} مكتب
+            {dict.presence.electionDayCoverageLabel} {coverage.overall.coveredStations}/{coverage.overall.totalStations} {dict.presence.stationUnit}
           </div>
         </div>
         <div
           className="rounded-xl border px-6 py-4 shadow-sm"
           style={{ borderColor: "var(--border)", background: "var(--card)" }}
         >
-          <div className="text-2xl font-extrabold text-[var(--heading)]">{localities.length.toLocaleString("ar")}</div>
+          <div className="text-2xl font-extrabold text-[var(--heading)]">{localities.length.toLocaleString(numberLocale)}</div>
           <div className="text-sm font-bold text-[var(--muted)]">
-            حي/دوار حقيقي ({totalLocalitiesVoters.toLocaleString("ar")} ناخب مغطى)
+            {dict.presence.realLocalitiesSuffix} ({totalLocalitiesVoters.toLocaleString(numberLocale)} {dict.presence.votersCoveredSuffix})
           </div>
         </div>
         <div className="text-sm text-[var(--muted)] max-w-md self-center leading-relaxed">
-          "مناطق مُدخلة" و"مكاتبنا" أسفله بيانات تشغيلية يدوية من الفريق الميداني.
-          "الحي/الدوار الحقيقي" أرقام مستخرجة آليا من قاعدة الناخبين المستوردة —
-          مرجعية فقط (بلا تعديل)، وتغطي الجماعات القروية بشكل أفضل بكثير من
-          مدينة تطوان نفسها (بيانات الأحياء الحضرية فيها ناقصة عند المصدر).
+          {dict.presence.explanationText}
         </div>
       </div>
 
@@ -230,13 +240,13 @@ export default async function PresencePage({
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
             }`}
           >
-            {t === "all" ? "كل الجماعات" : t} (
+            {t === "all" ? dict.presence.allCommunes : COMMUNE_TYPE_LABEL[t]} (
             {t === "all" ? communes.length : communes.filter((c) => c.type === t).length})
           </a>
         ))}
       </div>
 
-      <ListSearch scopeId="presence-list" placeholder="بحث باسم الجماعة، الحي، الدوار، المنطقة..." />
+      <ListSearch scopeId="presence-list" placeholder={dict.presence.searchPlaceholder} />
       <div id="presence-list" className="space-y-4">
         {filteredCommunes.map((c) => {
           const communeZones = zonesByCommune.get(c.id) ?? [];
@@ -248,27 +258,27 @@ export default async function PresencePage({
                 <div className="flex items-center gap-3 flex-wrap">
                   <span className="font-extrabold text-[17px] text-[var(--heading)]">{c.name}</span>
                   <span className="text-xs font-bold rounded-full px-2.5 py-1 border border-[var(--border)] text-[var(--muted)]">
-                    {c.type}
+                    {COMMUNE_TYPE_LABEL[c.type] ?? c.type}
                   </span>
                   <span className="text-sm text-[var(--muted)]">
-                    {communeZones.length} منطقة · {communeOffices} مكتب لينا
+                    {communeZones.length} {dict.presence.zonesUnit} · {communeOffices} {dict.presence.ourOfficesSuffix}
                   </span>
                   {communeCoverage && (
                     <span className="text-xs font-bold rounded-full px-2.5 py-1" style={{ background: "var(--bg)", color: "var(--brand-blue)" }}>
-                      تغطية ميدانية {pctRaw(communeCoverage.fieldCoveragePct)}
+                      {dict.presence.fieldCoverageBadge} {pctRaw(communeCoverage.fieldCoveragePct)}
                     </span>
                   )}
                   {communeCoverage && (
                     <span className="text-xs font-bold rounded-full px-2.5 py-1" style={{ background: "var(--bg)", color: "var(--severity-neutral)" }}>
-                      تغطية الاقتراع {pctRaw(communeCoverage.electionDayCoveragePct)}
+                      {dict.presence.electionCoverageBadge} {pctRaw(communeCoverage.electionDayCoveragePct)}
                     </span>
                   )}
                 </div>
                 <div className="text-sm text-[var(--muted)] flex gap-4 flex-wrap">
-                  <span>مشاركة 2021: <b className="text-[var(--text)]">{pct(c.participation_rate_2021)}</b></span>
+                  <span>{dict.presence.participation2021Label} <b className="text-[var(--text)]">{pct(c.participation_rate_2021)}</b></span>
                   <span>
-                    الحزب الأول 2021: <b className="text-[var(--text)]">{c.leading_party_2021 ?? "—"}</b> ({pct(c.leading_party_pct_2021)}
-                    ، {c.leading_party_seats_2021 ?? "—"}/{c.seats_total_2021 ?? "—"} مقعد)
+                    {dict.presence.leadingParty2021Label} <b className="text-[var(--text)]">{c.leading_party_2021 ?? "—"}</b> ({pct(c.leading_party_pct_2021)}
+                    ، {c.leading_party_seats_2021 ?? "—"}/{c.seats_total_2021 ?? "—"} {dict.presence.seatUnit})
                   </span>
                 </div>
               </summary>
@@ -277,8 +287,8 @@ export default async function PresencePage({
                 {(localitiesByCommune.get(c.id)?.length ?? 0) > 0 && (
                   <details className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
                     <summary className="cursor-pointer text-sm font-extrabold text-[var(--heading)]">
-                      الأحياء/الدواوير الحقيقية (بيانات مرجعية من قاعدة الناخبين) —{" "}
-                      {localitiesByCommune.get(c.id)?.length} حي/دوار
+                      {dict.presence.realLocalitiesSectionTitle}{" "}
+                      {localitiesByCommune.get(c.id)?.length} {dict.presence.localityUnit}
                     </summary>
                     <div className="mt-3 grid grid-cols-2 md:grid-cols-3 gap-2">
                       {(localitiesByCommune.get(c.id) ?? []).map((l) => (
@@ -288,7 +298,7 @@ export default async function PresencePage({
                         >
                           <span className="text-[var(--text)]">{l.locality_name}</span>
                           <span className="font-extrabold text-[var(--heading)]">
-                            {l.voter_count.toLocaleString("ar")}
+                            {l.voter_count.toLocaleString(numberLocale)}
                           </span>
                         </div>
                       ))}
@@ -299,20 +309,20 @@ export default async function PresencePage({
                   <div key={z.id} className="rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4">
                     <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
                       <div className="font-extrabold text-[var(--heading)]">
-                        {z.name} <span className="text-sm text-[var(--muted)] font-normal">({z.zone_type})</span>
+                        {z.name} <span className="text-sm text-[var(--muted)] font-normal">({ZONE_TYPE_LABEL[z.zone_type] ?? z.zone_type})</span>
                       </div>
                       <form action={deleteZone.bind(null, z.id)}>
                         <button
                           className="text-xs font-bold rounded-full px-3 py-1.5"
                           style={{ background: "var(--severity-high)", color: "white" }}
                         >
-                          حذف
+                          {dict.presence.deleteButton}
                         </button>
                       </form>
                     </div>
                     <form action={updateZone.bind(null, z.id)} className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
                       <label className="flex flex-col gap-1">
-                        <span className="text-sm text-[var(--muted)] font-semibold">مكاتبنا</span>
+                        <span className="text-sm text-[var(--muted)] font-semibold">{dict.presence.ourOfficesLabel}</span>
                         <input
                           type="number"
                           name="our_offices_count"
@@ -321,7 +331,7 @@ export default async function PresencePage({
                         />
                       </label>
                       <label className="flex flex-col gap-1">
-                        <span className="text-sm text-[var(--muted)] font-semibold">نسبة حضورنا %</span>
+                        <span className="text-sm text-[var(--muted)] font-semibold">{dict.presence.ourPresencePctLabel}</span>
                         <input
                           type="number"
                           step="0.1"
@@ -333,13 +343,13 @@ export default async function PresencePage({
                       {[1, 2, 3].map((i) => (
                         <label key={i} className="flex flex-col gap-1 col-span-2 md:col-span-1">
                           <span className="text-sm text-[var(--muted)] font-semibold">
-                            الحزب {i} + عدد مكاتبه
+                            {dict.presence.partyLabelPrefix} {i} {dict.presence.partyLabelSuffix}
                           </span>
                           <div className="flex gap-1">
                             <input
                               name={`party_${i}_name`}
                               defaultValue={(z as any)[`party_${i}_name`] ?? ""}
-                              placeholder="اسم الحزب"
+                              placeholder={dict.presence.partyNamePlaceholder}
                               className="flex-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                             />
                             <input
@@ -353,7 +363,7 @@ export default async function PresencePage({
                         </label>
                       ))}
                       <label className="flex flex-col gap-1 col-span-2 md:col-span-4">
-                        <span className="text-sm text-[var(--muted)] font-semibold">ملاحظة</span>
+                        <span className="text-sm text-[var(--muted)] font-semibold">{dict.presence.notesLabel}</span>
                         <input
                           name="notes"
                           defaultValue={z.notes ?? ""}
@@ -361,7 +371,7 @@ export default async function PresencePage({
                         />
                       </label>
                       <button className="col-span-2 md:col-span-4 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-3.5 py-2 text-sm hover:bg-[var(--brand-blue-hover)] transition">
-                        حفظ التحديث
+                        {dict.presence.saveUpdateButton}
                       </button>
                     </form>
 
@@ -372,14 +382,14 @@ export default async function PresencePage({
                             className="text-xs font-bold rounded-full px-2.5 py-1"
                             style={{ background: "var(--severity-neutral)", color: "white" }}
                           >
-                            🟢 عدد الخلايا: {cellsByZone.get(z.id)?.length}
+                            {dict.presence.cellsCountBadge} {cellsByZone.get(z.id)?.length}
                           </span>
                         ) : (
                           <span
                             className="text-xs font-bold rounded-full px-2.5 py-1"
                             style={{ background: "var(--severity-high)", color: "white" }}
                           >
-                            🔴 بلا خلية بعد
+                            {dict.presence.noCellYetBadge}
                           </span>
                         )}
                       </div>
@@ -390,10 +400,10 @@ export default async function PresencePage({
                           className="flex items-center justify-between gap-2 text-sm rounded-lg bg-[var(--card)] border border-[var(--border)] px-3 py-2 mb-1.5"
                         >
                           <div>
-                            <b className="text-[var(--text)]">{cell.cell_name ?? "خلية بلا اسم"}</b>
+                            <b className="text-[var(--text)]">{cell.cell_name ?? dict.presence.unnamedCell}</b>
                             {cell.contact_name && <span className="text-[var(--muted)]"> · {cell.contact_name}</span>}
                             {cell.contact_phone && <span className="text-[var(--muted)]"> · {cell.contact_phone}</span>}
-                            <span className="text-[var(--muted)]"> · منذ {cell.established_date}</span>
+                            <span className="text-[var(--muted)]"> · {dict.presence.sinceLabel} {cell.established_date}</span>
                             {cell.notes && <div className="text-[var(--muted)] text-xs mt-0.5">{cell.notes}</div>}
                           </div>
                           <form action={deleteCell.bind(null, cell.id)}>
@@ -401,7 +411,7 @@ export default async function PresencePage({
                               className="text-xs font-bold rounded-full px-2.5 py-1 shrink-0"
                               style={{ background: "var(--severity-high)", color: "white" }}
                             >
-                              حذف
+                              {dict.presence.deleteButton}
                             </button>
                           </form>
                         </div>
@@ -409,7 +419,7 @@ export default async function PresencePage({
 
                       <details className="mt-2">
                         <summary className="cursor-pointer text-sm font-bold text-[var(--brand-blue)]">
-                          + إضافة خلية جديدة
+                          {dict.presence.addCellSummary}
                         </summary>
                         <form
                           action={addCell.bind(null, z.id)}
@@ -417,26 +427,26 @@ export default async function PresencePage({
                         >
                           <input
                             name="cell_name"
-                            placeholder="اسم/رقم الخلية"
+                            placeholder={dict.presence.cellNamePlaceholder}
                             className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                           />
                           <input
                             name="contact_name"
-                            placeholder="المسؤول عنها"
+                            placeholder={dict.presence.contactNamePlaceholder}
                             className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                           />
                           <input
                             name="contact_phone"
-                            placeholder="هاتف المسؤول"
+                            placeholder={dict.presence.contactPhonePlaceholder}
                             className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                           />
                           <input
                             name="notes"
-                            placeholder="ملاحظة (اختياري)"
+                            placeholder={dict.presence.notesPlaceholder}
                             className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                           />
                           <button className="col-span-2 md:col-span-4 rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-2 text-sm">
-                            إضافة الخلية
+                            {dict.presence.addCellButton}
                           </button>
                         </form>
                       </details>
@@ -445,19 +455,19 @@ export default async function PresencePage({
                 ))}
                 {communeZones.length === 0 && (
                   <p className="text-[15px] text-[var(--muted)]">
-                    ماكاينش مناطق مُدخلة بعد لهاد الجماعة.
+                    {dict.presence.noZonesYet}
                   </p>
                 )}
 
                 <details className="rounded-lg border border-[var(--brand-blue)] p-4">
                   <summary className="cursor-pointer text-[15px] font-extrabold text-[var(--brand-blue)]">
-                    + إضافة حي/دوار/مدشر
+                    {dict.presence.addZoneSummary}
                   </summary>
                   <form action={addZone.bind(null, c.id)} className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm mt-4">
                     <input
                       name="name"
                       required
-                      placeholder="اسم المنطقة"
+                      placeholder={dict.presence.zoneNamePlaceholder}
                       className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                     />
                     <select
@@ -467,14 +477,14 @@ export default async function PresencePage({
                     >
                       {ZONE_TYPES.map((t) => (
                         <option key={t} value={t}>
-                          {t}
+                          {ZONE_TYPE_LABEL[t]}
                         </option>
                       ))}
                     </select>
                     <input
                       type="number"
                       name="our_offices_count"
-                      placeholder="مكاتبنا"
+                      placeholder={dict.presence.ourOfficesLabel}
                       defaultValue={0}
                       className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                     />
@@ -482,14 +492,14 @@ export default async function PresencePage({
                       type="number"
                       step="0.1"
                       name="our_presence_pct"
-                      placeholder="نسبة حضورنا %"
+                      placeholder={dict.presence.ourPresencePctLabel}
                       className="rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                     />
                     {[1, 2, 3].map((i) => (
                       <div key={i} className="flex gap-1 col-span-2 md:col-span-1">
                         <input
                           name={`party_${i}_name`}
-                          placeholder={`الحزب ${i}`}
+                          placeholder={`${dict.presence.partyLabelPrefix} ${i}`}
                           className="flex-1 rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                         />
                         <input
@@ -502,11 +512,11 @@ export default async function PresencePage({
                     ))}
                     <input
                       name="notes"
-                      placeholder="ملاحظة (اختياري)"
+                      placeholder={dict.presence.notesPlaceholder}
                       className="col-span-2 md:col-span-4 rounded-lg border border-[var(--border)] px-2.5 py-1.5 bg-[var(--card)]"
                     />
                     <button className="col-span-2 md:col-span-4 rounded-lg bg-[var(--brand-navy)] text-white font-bold px-3.5 py-2">
-                      إضافة
+                      {dict.presence.addButton}
                     </button>
                   </form>
                 </details>
