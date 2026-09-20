@@ -9,15 +9,26 @@ import {
 } from "@/lib/electoralContext";
 import { addPartyOfficial, deletePartyOfficial } from "./actions";
 import ListSearch from "@/components/ListSearch";
+import { getDictionary, type Dictionary } from "@/lib/i18n/getDictionary";
 
-function fmt(n: number | null, suffix = "") {
-  return n === null ? "غير متوفر" : `${n.toLocaleString("ar-MA")}${suffix}`;
+function fmt(n: number | null, dict: Dictionary, numberLocale: string, suffix = "") {
+  return n === null ? dict.electoralContext.notAvailable : `${n.toLocaleString(numberLocale)}${suffix}`;
 }
 
 export const dynamic = "force-dynamic";
 
 export default async function ElectoralContextPage() {
   const supabase = await createClient();
+  const { dict, locale } = await getDictionary();
+  const numberLocale = locale === "fr" ? "fr-FR" : "ar-MA";
+  const CATEGORY_LABEL: Record<string, string> = {
+    "حالي": dict.electoralContext.categoryCurrent,
+    "تاريخي": dict.electoralContext.categoryHistorical,
+  };
+  const COMMUNE_TYPE_LABEL: Record<string, string> = {
+    "حضري": dict.presence.urban,
+    "قروي": dict.presence.rural,
+  };
   const [{ communeRows, totalVoters, totalStations, totalCommunes, officials }, { data: communesList }] =
     await Promise.all([
       getElectoralContextData(supabase),
@@ -29,23 +40,23 @@ export default async function ElectoralContextPage() {
 
   return (
     <PageShell
-      title="السياق الانتخابي"
-      subtitle="دائرة تطوان التشريعية — لقطة حقيقية من بياناتنا (ناخبين، مكاتب، خط أساس 2021) + سجل مسؤولي/مرشحي الحزب"
+      title={dict.electoralContext.title}
+      subtitle={dict.electoralContext.subtitle}
       icon={<IconLandmark />}
     >
       <div className="grid sm:grid-cols-3 gap-4 mb-6">
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <div className="text-sm font-bold text-[var(--muted)]">الناخبون (مستوردون فعليا)</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.electoralContext.statVotersImported}</div>
           <div className="text-[28px] font-extrabold text-[var(--heading)]">
-            {totalVoters.toLocaleString("ar-MA")}
+            {totalVoters.toLocaleString(numberLocale)}
           </div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <div className="text-sm font-bold text-[var(--muted)]">مكاتب التصويت الحقيقية</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.electoralContext.statRealStations}</div>
           <div className="text-[28px] font-extrabold text-[var(--heading)]">{totalStations}</div>
         </div>
         <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <div className="text-sm font-bold text-[var(--muted)]">جماعات الإقليم</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.electoralContext.statCommunes}</div>
           <div className="text-[28px] font-extrabold text-[var(--heading)]">{totalCommunes}</div>
         </div>
       </div>
@@ -53,10 +64,10 @@ export default async function ElectoralContextPage() {
       <section className="rounded-xl overflow-hidden mb-6 text-white shadow-sm" style={{ background: "linear-gradient(120deg, var(--brand-navy) 0%, var(--brand-navy-2) 100%)" }}>
         <div className="grid gap-6 p-6 lg:grid-cols-[1.2fr_2fr] lg:p-8">
           <div>
-            <p className="text-xs font-bold text-white/70">ملف الحزب — تطوان</p>
+            <p className="text-xs font-bold text-white/70">{dict.electoralContext.partyProfileLabel}</p>
             <h2 className="mt-1 text-2xl font-black">{PPS_NAME}</h2>
             <div className="mt-5 rounded-2xl border border-white/15 bg-white/10 p-4">
-              <p className="text-xs font-bold text-white/70">وكيل لائحة 2026</p>
+              <p className="text-xs font-bold text-white/70">{dict.electoralContext.agent2026Label}</p>
               <p className="mt-2 text-xl font-black">{PPS_DISTRICT_FILE.candidate2026}</p>
               <p className="mt-2 text-xs leading-6 text-white/70">{PPS_DISTRICT_FILE.candidate2026Note}</p>
               <a
@@ -65,36 +76,36 @@ export default async function ElectoralContextPage() {
                 rel="noreferrer"
                 className="mt-3 inline-block text-xs font-bold underline decoration-white/40 underline-offset-4"
               >
-                مصدر التحقق
+                {dict.electoralContext.verificationSourceLink}
               </a>
             </div>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs font-bold text-white/70">مقاعد جماعية 2015</p>
-              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.communalSeats2015)}</p>
+              <p className="text-xs font-bold text-white/70">{dict.electoralContext.communalSeats2015Label}</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.communalSeats2015, dict, numberLocale)}</p>
               <p className="mt-1 text-[11px] text-white/60">
-                موزعة على {fmt(PPS_DISTRICT_FILE.communalSeats2015Communes)} جماعات
+                {dict.electoralContext.distributedAcrossPrefix} {fmt(PPS_DISTRICT_FILE.communalSeats2015Communes, dict, numberLocale)} {dict.electoralContext.communesSuffix}
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs font-bold text-white/70">مقاعد جماعية 2021</p>
-              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.communalSeats2021)}</p>
+              <p className="text-xs font-bold text-white/70">{dict.electoralContext.communalSeats2021Label}</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.communalSeats2021, dict, numberLocale)}</p>
               <p className="mt-1 text-[11px] text-white/60">
-                ممثلة في {fmt(PPS_DISTRICT_FILE.communalSeats2021Communes)} جماعة
+                {dict.electoralContext.representedInPrefix} {fmt(PPS_DISTRICT_FILE.communalSeats2021Communes, dict, numberLocale)} {dict.electoralContext.communeSuffix}
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs font-bold text-white/70">أفضل نتيجة تشريعية مسجلة</p>
-              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.bestLegislativeVotes)}</p>
+              <p className="text-xs font-bold text-white/70">{dict.electoralContext.bestLegislativeResultLabel}</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.bestLegislativeVotes, dict, numberLocale)}</p>
               <p className="mt-1 text-[11px] text-white/60">
-                صوتا سنة {PPS_DISTRICT_FILE.bestLegislativeYear} — نسبة {PPS_DISTRICT_FILE.bestLegislativePercentage}%
+                {dict.electoralContext.votesInYearPrefix} {PPS_DISTRICT_FILE.bestLegislativeYear} {dict.electoralContext.percentageInline} {PPS_DISTRICT_FILE.bestLegislativePercentage}%
               </p>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4">
-              <p className="text-xs font-bold text-white/70">منتخبو جماعة تطوان 2021</p>
-              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.councilMembers2021Tetouan)}</p>
-              <p className="mt-1 text-[11px] text-white/60">أسماء مسجلة أسفله (سجل مسؤولي/مرشحي الحزب)</p>
+              <p className="text-xs font-bold text-white/70">{dict.electoralContext.councilMembers2021Label}</p>
+              <p className="mt-2 text-3xl font-black">{fmt(PPS_DISTRICT_FILE.councilMembers2021Tetouan, dict, numberLocale)}</p>
+              <p className="mt-1 text-[11px] text-white/60">{dict.electoralContext.namesRegisteredBelow}</p>
             </div>
           </div>
         </div>
@@ -102,10 +113,9 @@ export default async function ElectoralContextPage() {
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] mb-8 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-[var(--border)]">
-          <h2 className="font-extrabold text-[var(--heading)]">المسار التشريعي للحزب في دائرة تطوان</h2>
+          <h2 className="font-extrabold text-[var(--heading)]">{dict.electoralContext.legislativeHistoryTitle}</h2>
           <p className="text-xs text-[var(--muted)] mt-1">
-            نتائج تشريعية 2011/2016/2021 — أرقام تاريخية ثابتة، مؤكدة من علي مباشرة (سكرينشوت من الأرشيف الأصلي
-            للحملة). الخانة "غير متوفر" لا تعني صفرا.
+            {dict.electoralContext.legislativeHistorySubtitle}
           </p>
         </div>
         <div className="grid gap-4 p-5 md:grid-cols-3">
@@ -114,25 +124,25 @@ export default async function ElectoralContextPage() {
               <div className="flex items-center justify-between">
                 <span className="text-xl font-black text-[var(--heading)]">{r.year}</span>
                 <span className="rounded-full bg-[var(--severity-high)]/10 px-3 py-1 text-[11px] font-black text-[var(--severity-high)]">
-                  {r.seats} مقاعد
+                  {r.seats} {dict.electoralContext.seatsUnit}
                 </span>
               </div>
               <dl className="mt-4 space-y-2 text-sm">
                 <div className="flex items-center justify-between">
-                  <dt className="text-[var(--muted)]">الأصوات</dt>
-                  <dd className="font-black text-[var(--text)]">{fmt(r.votes)}</dd>
+                  <dt className="text-[var(--muted)]">{dict.electoralContext.votesLabel}</dt>
+                  <dd className="font-black text-[var(--text)]">{fmt(r.votes, dict, numberLocale)}</dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-[var(--muted)]">النسبة</dt>
-                  <dd className="font-black text-[var(--text)]">{fmt(r.percentage, "%")}</dd>
+                  <dt className="text-[var(--muted)]">{dict.electoralContext.percentageLabel}</dt>
+                  <dd className="font-black text-[var(--text)]">{fmt(r.percentage, dict, numberLocale, "%")}</dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-[var(--muted)]">وكيل اللائحة</dt>
-                  <dd className="font-bold text-[var(--text)]">{r.agentName ?? "غير متوفر"}</dd>
+                  <dt className="text-[var(--muted)]">{dict.electoralContext.listAgentLabel}</dt>
+                  <dd className="font-bold text-[var(--text)]">{r.agentName ?? dict.electoralContext.notAvailable}</dd>
                 </div>
                 <div className="flex items-center justify-between">
-                  <dt className="text-[var(--muted)]">المشاركة العامة</dt>
-                  <dd className="font-bold text-[var(--text)]">{fmt(r.participationRate, "%")}</dd>
+                  <dt className="text-[var(--muted)]">{dict.electoralContext.overallParticipationLabel}</dt>
+                  <dd className="font-bold text-[var(--text)]">{fmt(r.participationRate, dict, numberLocale, "%")}</dd>
                 </div>
               </dl>
             </div>
@@ -141,29 +151,25 @@ export default async function ElectoralContextPage() {
       </section>
 
       <div className="rounded-xl px-5 py-4 mb-6 text-xs leading-relaxed text-[var(--muted)] bg-[var(--card)] border border-[var(--border)]">
-        <strong className="text-[var(--text)]">قيد بيانات صادق</strong>: البيانات أعلاه على مستوى الدائرة ككل مؤكدة
-        مباشرة من علي. تفصيل مقاعد الحزب لكل جماعة على حدة غير متوفر عندنا حاليا — خط الأساس 2021 حسب الجماعة أسفله
-        يبقى "الحزب المتصدر عموما" لكل جماعة (ولم يكن حزب التقدم والاشتراكية متصدرا فأي واحدة منها)، ماشي مقاعد
-        الحزب تحديدا. أسماء المسؤولين/المرشحين أسفله تُدخل يدويا من طرف علي.
+        <strong className="text-[var(--text)]">{dict.electoralContext.dataHonestyNoteTitle}</strong>{dict.electoralContext.dataHonestyNoteBody}
       </div>
 
       <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] mb-8 shadow-sm overflow-hidden">
         <div className="p-5 border-b border-[var(--border)]">
-          <h2 className="font-extrabold text-[var(--heading)]">خط الأساس 2021 والناخبون الحقيقيون — حسب الجماعة</h2>
+          <h2 className="font-extrabold text-[var(--heading)]">{dict.electoralContext.baselineTableTitle}</h2>
           <p className="text-xs text-[var(--muted)] mt-1">
-            "المتصدر 2021" و"المشاركة" من النتائج الرسمية (elections.ma). "ناخبونا" من قاعدة الناخبين الحقيقية
-            المستوردة (269,749 ناخب، T-076).
+            {dict.electoralContext.baselineTableSubtitle}
           </p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-[var(--bg)] text-xs text-[var(--muted)]">
               <tr>
-                <th className="px-4 py-3 text-right font-bold">الجماعة</th>
-                <th className="px-4 py-3 text-right font-bold">المتصدر 2021</th>
-                <th className="px-4 py-3 text-right font-bold">مقاعده</th>
-                <th className="px-4 py-3 text-right font-bold">مشاركة 2021</th>
-                <th className="px-4 py-3 text-right font-bold">ناخبونا</th>
+                <th className="px-4 py-3 text-right font-bold">{dict.electoralContext.tableHeaderCommune}</th>
+                <th className="px-4 py-3 text-right font-bold">{dict.electoralContext.tableHeaderLeadingParty2021}</th>
+                <th className="px-4 py-3 text-right font-bold">{dict.electoralContext.tableHeaderSeats}</th>
+                <th className="px-4 py-3 text-right font-bold">{dict.electoralContext.tableHeaderParticipation2021}</th>
+                <th className="px-4 py-3 text-right font-bold">{dict.electoralContext.tableHeaderOurVoters}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)]">
@@ -171,7 +177,7 @@ export default async function ElectoralContextPage() {
                 <tr key={r.commune.id}>
                   <td className="px-4 py-3 font-bold text-[var(--heading)]">
                     {r.commune.name}
-                    <span className="text-xs text-[var(--muted)] font-normal"> · {r.commune.type}</span>
+                    <span className="text-xs text-[var(--muted)] font-normal"> · {COMMUNE_TYPE_LABEL[r.commune.type] ?? r.commune.type}</span>
                   </td>
                   <td className="px-4 py-3 text-[var(--text)]">{r.commune.leading_party_2021 ?? "—"}</td>
                   <td className="px-4 py-3 text-[var(--text)]">
@@ -184,7 +190,7 @@ export default async function ElectoralContextPage() {
                       ? `${Math.round(r.commune.participation_rate_2021 * 100)}%`
                       : "—"}
                   </td>
-                  <td className="px-4 py-3 font-bold text-[var(--heading)]">{r.realVoters.toLocaleString("ar-MA")}</td>
+                  <td className="px-4 py-3 font-bold text-[var(--heading)]">{r.realVoters.toLocaleString(numberLocale)}</td>
                 </tr>
               ))}
             </tbody>
@@ -193,17 +199,17 @@ export default async function ElectoralContextPage() {
       </section>
 
       <section className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">إضافة مسؤول/مرشح</h2>
+        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">{dict.electoralContext.addOfficialTitle}</h2>
         <form action={addPartyOfficial} className="grid grid-cols-2 gap-3">
           <input
             name="full_name"
-            placeholder="الاسم الكامل"
+            placeholder={dict.volunteers.fullNamePlaceholder}
             required
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="role"
-            placeholder="الدور (مثال: وكيل اللائحة 2026، مستشار جماعي)"
+            placeholder={dict.electoralContext.rolePlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <select
@@ -211,7 +217,7 @@ export default async function ElectoralContextPage() {
             defaultValue=""
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
           >
-            <option value="">— الجماعة (اختياري) —</option>
+            <option value="">{dict.volunteers.communeOptionalOption}</option>
             {(communesList ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -223,24 +229,24 @@ export default async function ElectoralContextPage() {
             defaultValue="حالي"
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
           >
-            <option value="حالي">حالي</option>
-            <option value="تاريخي">تاريخي</option>
+            <option value="حالي">{dict.electoralContext.categoryCurrent}</option>
+            <option value="تاريخي">{dict.electoralContext.categoryHistorical}</option>
           </select>
           <input
             name="notes"
-            placeholder="ملاحظة (اختياري)"
+            placeholder={dict.volunteers.notesPlaceholder}
             className="col-span-2 rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <button className="col-span-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition">
-            + إضافة
+            {dict.electoralContext.addButton}
           </button>
         </form>
       </section>
 
       <div className="grid md:grid-cols-2 gap-5">
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <h2 className="font-extrabold text-[var(--heading)] mb-3">مسؤولون/مرشحون حاليون ({currentOfficials.length})</h2>
-          <ListSearch scopeId="current-officials-list" placeholder="بحث بالاسم، الدور، الجماعة..." />
+          <h2 className="font-extrabold text-[var(--heading)] mb-3">{dict.electoralContext.currentOfficialsTitle} ({currentOfficials.length})</h2>
+          <ListSearch scopeId="current-officials-list" placeholder={dict.electoralContext.searchOfficialsPlaceholder} />
           <div id="current-officials-list" className="divide-y divide-[var(--border)]">
             {currentOfficials.map((o) => (
               <div key={o.id} data-search-item className="flex items-start justify-between gap-3 py-3">
@@ -258,20 +264,20 @@ export default async function ElectoralContextPage() {
                     className="text-xs font-bold rounded-full px-3 py-1.5 shrink-0"
                     style={{ background: "var(--severity-high)", color: "white" }}
                   >
-                    حذف
+                    {dict.volunteers.deleteButton}
                   </button>
                 </form>
               </div>
             ))}
             {currentOfficials.length === 0 && (
-              <p className="text-sm text-[var(--muted)] py-3">ماكاينش أسماء مُدخلة بعد.</p>
+              <p className="text-sm text-[var(--muted)] py-3">{dict.electoralContext.noNamesYet}</p>
             )}
           </div>
         </section>
 
         <section className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-          <h2 className="font-extrabold text-[var(--heading)] mb-3">أسماء تاريخية ({historicalOfficials.length})</h2>
-          <ListSearch scopeId="historical-officials-list" placeholder="بحث بالاسم، الدور، الجماعة..." />
+          <h2 className="font-extrabold text-[var(--heading)] mb-3">{dict.electoralContext.historicalNamesTitle} ({historicalOfficials.length})</h2>
+          <ListSearch scopeId="historical-officials-list" placeholder={dict.electoralContext.searchOfficialsPlaceholder} />
           <div id="historical-officials-list" className="divide-y divide-[var(--border)]">
             {historicalOfficials.map((o) => (
               <div key={o.id} data-search-item className="flex items-start justify-between gap-3 py-3">
@@ -289,13 +295,13 @@ export default async function ElectoralContextPage() {
                     className="text-xs font-bold rounded-full px-3 py-1.5 shrink-0"
                     style={{ background: "var(--severity-high)", color: "white" }}
                   >
-                    حذف
+                    {dict.volunteers.deleteButton}
                   </button>
                 </form>
               </div>
             ))}
             {historicalOfficials.length === 0 && (
-              <p className="text-sm text-[var(--muted)] py-3">ماكاينش أسماء مُدخلة بعد.</p>
+              <p className="text-sm text-[var(--muted)] py-3">{dict.electoralContext.noNamesYet}</p>
             )}
           </div>
         </section>
