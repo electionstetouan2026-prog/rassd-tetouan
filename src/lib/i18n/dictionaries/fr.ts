@@ -193,6 +193,34 @@ const fr = {
     fieldCoverageBadge: "Couverture terrain",
     electionDayCoverageBadge: "Couverture jour du scrutin",
   },
+  strongholdMap: {
+    title: "Carte et points forts",
+    subtitle:
+      "Indice simplifié pour classer les priorités du travail de terrain — construit entièrement à partir des données en direct de notre campagne (contact des électeurs, présence terrain, équipe). Un outil pour orienter l'effort restant, pas une prévision électorale.",
+    statCommunesWithScore: "Communes avec indice calculé",
+    statTopScore: "Indice de force terrain le plus élevé",
+    baselineNoteTitle: "Note importante sur la fiabilité des données",
+    baselineNoteBody:
+      "La référence 2021 affichée est le parti arrivé en tête dans chaque commune en général, et non la part du Parti du Progrès et du Socialisme spécifiquement — ce dernier n'est arrivé en tête dans aucune des 22 communes en 2021, donc il n'existe pas de données historiques précises du parti au niveau communal sur lesquelles s'appuyer pour ce calcul. L'indice est donc construit entièrement à partir de données terrain en direct (contact, présence, équipe), pas d'un historique électoral.",
+    mapSectionTitle: "Carte géographique — limites des 22 communes",
+    mapSectionSubtitle:
+      "Limites des communes issues d'OpenStreetMap (admin_level=8) — couche locale sauvegardée, sans besoin de connexion internet à l'exécution, la même source utilisée dans l'application de référence. La couleur suit l'indice de force terrain ci-dessus (pas un historique électoral).",
+    mapNoDataHint: "Pas encore assez de données terrain",
+    searchPlaceholder: "Rechercher par nom de commune...",
+    baselineInline: "· Référence 2021 :",
+    noDataYet: "Pas encore assez de données terrain pour cette commune (aucun contact électeur, aucune cellule, aucune équipe enregistrée).",
+    supportRatioLabel: "Taux de soutien parmi les contactés",
+    supporterHintOf: "soutiens sur",
+    supporterHintSuffix: "contactés",
+    noContactYet: "Aucun contact enregistré pour l'instant",
+    contactCoverageLabel: "Couverture des contacts sur le total des électeurs",
+    fieldCoverageCellsLabel: "Couverture terrain par cellules",
+    teamDensityLabel: "Densité de l'équipe terrain",
+    teamCountSuffix: "bénévoles/militants actifs",
+    voterContactLink: "Suivi des électeurs ↗",
+    presenceLink: "Carte de présence ↗",
+    volunteersLink: "Bénévoles ↗",
+  },
 } satisfies typeof ar;
 
 export default fr;
