@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { addActivist, updateActivistStatus, deleteActivist } from "./actions";
 import { IconIdBadge } from "@/components/icons";
 import ListSearch from "@/components/ListSearch";
+import { getDictionary } from "@/lib/i18n/getDictionary";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,13 @@ export default async function ActivistsPage({
   const params = await searchParams;
   const statusFilter = params.status ?? "all";
   const communeFilter = params.commune ?? "all";
+
+  const { dict } = await getDictionary();
+  const STATUS_LABEL: Record<string, string> = {
+    "نشيط": dict.volunteers.statusActive,
+    "فالانتظار": dict.volunteers.statusPending,
+    "غير نشيط": dict.volunteers.statusInactive,
+  };
 
   const supabase = await createClient();
 
@@ -57,17 +65,17 @@ export default async function ActivistsPage({
 
   return (
     <PageShell
-      title="المناضلون"
-      subtitle="أعضاء الحزب المنخرطون رسميا فالحملة — رقم الانخراط، الفرع المحلي، المسؤولية"
+      title={dict.activists.title}
+      subtitle={dict.activists.subtitle}
       icon={<IconIdBadge />}
     >
       <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 mb-6 flex items-center gap-6 flex-wrap shadow-sm">
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">إجمالي المناضلين</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.activists.statTotalActivists}</div>
           <div className="text-[28px] font-extrabold text-[var(--heading)]">{activists.length}</div>
         </div>
         <div>
-          <div className="text-sm font-bold text-[var(--muted)]">نشيطون</div>
+          <div className="text-sm font-bold text-[var(--muted)]">{dict.volunteers.statActive}</div>
           <div className="text-[28px] font-extrabold" style={{ color: "var(--severity-neutral)" }}>
             {statusCounts["نشيط"] ?? 0}
           </div>
@@ -75,27 +83,27 @@ export default async function ActivistsPage({
       </div>
 
       <section className="mb-8 rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
-        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">إضافة مناضل</h2>
+        <h2 className="text-lg font-extrabold mb-4 text-[var(--heading)]">{dict.activists.addActivistTitle}</h2>
         <form action={addActivist} className="grid grid-cols-2 gap-3">
           <input
             name="full_name"
-            placeholder="الاسم الكامل"
+            placeholder={dict.volunteers.fullNamePlaceholder}
             required
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="phone"
-            placeholder="الهاتف (اختياري)"
+            placeholder={dict.volunteers.phonePlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="email"
-            placeholder="البريد الإلكتروني (اختياري)"
+            placeholder={dict.volunteers.emailPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="membership_number"
-            placeholder="رقم الانخراط (اختياري)"
+            placeholder={dict.activists.membershipNumberPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <select
@@ -103,7 +111,7 @@ export default async function ActivistsPage({
             defaultValue=""
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)]"
           >
-            <option value="">— الجماعة (اختياري) —</option>
+            <option value="">{dict.volunteers.communeOptionalOption}</option>
             {(communes ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -112,21 +120,21 @@ export default async function ActivistsPage({
           </select>
           <input
             name="local_branch"
-            placeholder="الفرع المحلي (اختياري)"
+            placeholder={dict.activists.localBranchPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="responsibility"
-            placeholder="المسؤولية (مثال: كاتب الفرع)"
+            placeholder={dict.activists.responsibilityPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <input
             name="notes"
-            placeholder="ملاحظة (اختياري)"
+            placeholder={dict.volunteers.notesPlaceholder}
             className="rounded-lg border border-[var(--border)] px-3.5 py-2.5 text-[15px] bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
           />
           <button className="col-span-2 rounded-lg bg-[var(--brand-blue)] text-white font-bold px-4 py-2.5 hover:bg-[var(--brand-blue-hover)] transition">
-            + إضافة مناضل
+            {dict.activists.addActivistButton}
           </button>
         </form>
       </section>
@@ -142,7 +150,7 @@ export default async function ActivistsPage({
                 : "border-[var(--border)] bg-[var(--card)] text-[var(--text)]"
             }`}
           >
-            {tab === "all" ? "الكل" : tab} ({statusCounts[tab] ?? 0})
+            {tab === "all" ? dict.common.all : STATUS_LABEL[tab]} ({statusCounts[tab] ?? 0})
           </a>
         ))}
       </div>
@@ -155,7 +163,7 @@ export default async function ActivistsPage({
               : "border-[var(--border)] text-[var(--muted)] bg-[var(--card)]"
           }`}
         >
-          كل الجماعات
+          {dict.pollingStations.allCommunes}
         </a>
         {(communes ?? []).map((c) => (
           <a
@@ -172,7 +180,7 @@ export default async function ActivistsPage({
         ))}
       </div>
 
-      <ListSearch scopeId="activists-list" placeholder="بحث بالاسم، الهاتف، البريد، الجماعة، الفرع..." />
+      <ListSearch scopeId="activists-list" placeholder={dict.activists.searchPlaceholder} />
       <div id="activists-list" className="grid md:grid-cols-2 gap-4">
         {filtered.map((a: any) => (
           <div key={a.id} data-search-item className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-sm">
@@ -189,14 +197,14 @@ export default async function ActivistsPage({
                   {a.phone ?? ""}
                   {a.phone && a.email ? " · " : ""}
                   {a.email ?? ""}
-                  {a.membership_number ? ` · رقم الانخراط: ${a.membership_number}` : ""}
+                  {a.membership_number ? ` ${dict.activists.membershipNumberInline} ${a.membership_number}` : ""}
                 </div>
               </div>
               <span
                 className="text-xs font-extrabold rounded-full px-3 py-1.5 text-white shrink-0"
                 style={{ background: STATUS_COLOR[a.status] ?? "#9ca3af" }}
               >
-                {a.status}
+                {STATUS_LABEL[a.status] ?? a.status}
               </span>
             </div>
             <div className="text-sm text-[var(--muted)] mb-2 leading-relaxed">
@@ -214,7 +222,7 @@ export default async function ActivistsPage({
                     }`}
                     style={a.status === s ? { background: STATUS_COLOR[s] } : undefined}
                   >
-                    {s}
+                    {STATUS_LABEL[s]}
                   </button>
                 </form>
               ))}
@@ -223,14 +231,14 @@ export default async function ActivistsPage({
                   className="text-xs font-bold rounded-full px-3 py-1.5"
                   style={{ background: "var(--severity-high)", color: "white" }}
                 >
-                  حذف
+                  {dict.volunteers.deleteButton}
                 </button>
               </form>
             </div>
           </div>
         ))}
         {filtered.length === 0 && (
-          <p className="text-[15px] text-[var(--muted)] md:col-span-2">ماكاينش مناضلون يطابقو هاد الفلترة.</p>
+          <p className="text-[15px] text-[var(--muted)] md:col-span-2">{dict.activists.noMatch}</p>
         )}
       </div>
     </PageShell>
