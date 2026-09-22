@@ -87,6 +87,8 @@ const fr = {
     changeStationButton: "Changer de bureau",
     reassignPlaceholder: "— Aucun bureau — (tapez pour chercher)",
     noMatch: "Aucun observateur ne correspond à ce filtre.",
+    exportLabel: "Télécharger Excel :",
+    exportButton: "⬇ Télécharger",
   },
   candidates: {
     title: "Dossiers des candidats",

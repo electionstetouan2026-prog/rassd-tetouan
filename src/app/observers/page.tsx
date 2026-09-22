@@ -142,6 +142,33 @@ export default async function ObserversPage({
         </form>
       </section>
 
+      <form
+        action="/api/observers/export"
+        method="GET"
+        className="flex gap-2 items-center flex-wrap mb-4 rounded-xl border border-[var(--border)] bg-[var(--card)] p-3.5 shadow-sm"
+      >
+        <span className="text-sm font-bold text-[var(--muted)]">{dict.observers.exportLabel}</span>
+        <select
+          name="status"
+          defaultValue={statusFilter}
+          className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm bg-[var(--bg)] focus:border-[var(--brand-blue)] focus:outline-none"
+        >
+          <option value="all">{dict.common.all}</option>
+          {STATUS_TABS.filter((s) => s !== "all").map((s) => (
+            <option key={s} value={s}>
+              {STATUS_LABEL[s]}
+            </option>
+          ))}
+        </select>
+        <input type="hidden" name="commune" value={communeFilter} />
+        <button
+          type="submit"
+          className="text-sm font-bold rounded-lg border border-[var(--border)] px-3.5 py-2 bg-[var(--card)] hover:bg-[var(--bg)] transition"
+        >
+          {dict.observers.exportButton}
+        </button>
+      </form>
+
       <div className="flex gap-2 flex-wrap mb-3">
         {STATUS_TABS.map((tab) => (
           <a

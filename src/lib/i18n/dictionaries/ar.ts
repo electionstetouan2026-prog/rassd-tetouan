@@ -86,6 +86,8 @@ const ar = {
     changeStationButton: "تغيير المكتب",
     reassignPlaceholder: "— بلا إسناد — (اكتب للبحث)",
     noMatch: "ماكاينش مراقبون يطابقو هاد الفلترة.",
+    exportLabel: "تحميل Excel:",
+    exportButton: "⬇ تحميل",
   },
   candidates: {
     title: "ملفات المرشحين",
