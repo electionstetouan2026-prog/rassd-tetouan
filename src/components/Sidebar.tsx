@@ -6,7 +6,7 @@ import ThemeToggle from "./ThemeToggle";
 import LanguageSwitcher from "./LanguageSwitcher";
 import type { Dictionary } from "@/lib/i18n/getDictionary";
 import type { Locale } from "@/lib/i18n/locale";
-import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconShield, IconFlame, IconPhone, IconHeartHand, IconIdBadge, IconBuilding, IconTarget, IconLandmark, IconUpload, IconLogout } from "./icons";
+import { IconDashboard, IconPeople, IconMap, IconTasks, IconEye, IconChart, IconShield, IconFlame, IconPhone, IconHeartHand, IconIdBadge, IconBuilding, IconTarget, IconLandmark, IconUpload, IconLogout, IconBallot } from "./icons";
 
 function buildNavItems(nav: Dictionary["nav"]) {
   return [
@@ -19,6 +19,7 @@ function buildNavItems(nav: Dictionary["nav"]) {
     { href: "/activists", label: nav.activists, Icon: IconIdBadge },
     { href: "/polling-stations", label: nav.pollingStations, Icon: IconBuilding },
     { href: "/hot-blocks", label: nav.hotBlocks, Icon: IconFlame },
+    { href: "/results", label: nav.results, Icon: IconBallot },
     { href: "/stronghold-map", label: nav.strongholdMap, Icon: IconTarget },
     { href: "/electoral-context", label: nav.electoralContext, Icon: IconLandmark },
     { href: "/candidates", label: nav.candidates, Icon: IconIdBadge },
