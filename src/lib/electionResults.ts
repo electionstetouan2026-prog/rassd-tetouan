@@ -20,6 +20,18 @@ export type ElectionResultRow = {
   matchedCommuneName: string | null;
   observerCount: number;
   hasCoverage: boolean;
+  subOffices: SubOfficeElectionRow[];
+};
+
+export type SubOfficeElectionRow = {
+  id: string;
+  officeNumber: number | null;
+  officeNumberRaw: string | null;
+  partyVotes: Record<string, number>;
+  totalVotes: number | null;
+  matchedStationId: string | null;
+  observerCount: number;
+  hasCoverage: boolean;
 };
 
 export type ElectionSummaryRow = {
@@ -106,19 +118,29 @@ function normalizeCenterName(s: string) {
  * بلا حاجة لإعادة استيراد بيانات النتائج.
  */
 export async function getElectionResultsData(supabase: SupabaseClient) {
-  const [{ data: resultsRaw }, { data: summaryRaw }, { data: stationsRaw }, { data: observersRaw }] =
-    await Promise.all([
-      supabase.from("election_results").select("*").order("office_number"),
-      supabase.from("election_results_summary").select("*").order("list_rank"),
-      supabase
-        .from("polling_stations")
-        .select("id, center_name, commune_id, communes(name)")
-        .eq("is_mock", false),
-      supabase.from("observers").select("id, polling_station_id"),
-    ]);
+  const [
+    { data: resultsRaw },
+    { data: summaryRaw },
+    { data: stationsRaw },
+    { data: observersRaw },
+    { data: subOfficesRaw },
+  ] = await Promise.all([
+    supabase.from("election_results").select("*").order("office_number"),
+    supabase.from("election_results_summary").select("*").order("list_rank"),
+    supabase
+      .from("polling_stations")
+      .select("id, center_name, commune_id, sub_office_number, communes(name)")
+      .eq("is_mock", false),
+    supabase.from("observers").select("id, polling_station_id"),
+    supabase
+      .from("sub_office_election_results")
+      .select("*")
+      .order("office_number"),
+  ]);
 
   const stations = (stationsRaw ?? []) as any[];
   const observers = (observersRaw ?? []) as any[];
+  const subOfficeRows = (subOfficesRaw ?? []) as any[];
 
   // تجميع مكاتب التصويت الفرعية حسب اسم المركز المطبّع (مدرسة/ثانوية واحدة
   // = عدة مكاتب فرعية فمنصتنا، لكن مكتب مركزي واحد فملف النتائج)
@@ -139,6 +161,51 @@ export async function getElectionResultsData(supabase: SupabaseClient) {
     const id = o.polling_station_id as string;
     observerCountByStation.set(id, (observerCountByStation.get(id) ?? 0) + 1);
   }
+
+  // ربط تفصيل المكاتب الفرعية (sub_office_election_results، محاضر حقيقية)
+  // بمكاتب التصويت عبر (اسم الجماعة، رقم المكتب الفرعي) — مطابقة دقيقة
+  // بالرقم، ماشي بالاسم، بعكس مطابقة المكتب المركزي أعلاه.
+  const stationBySubOffice = new Map<string, { id: string; centerName: string }>();
+  for (const s of stations) {
+    const communeName = (s.communes as any)?.name ?? null;
+    const subOfficeNumber = s.sub_office_number as number | null;
+    if (!communeName || subOfficeNumber == null) continue;
+    stationBySubOffice.set(`${communeName}__${subOfficeNumber}`, {
+      id: s.id as string,
+      centerName: s.center_name as string,
+    });
+  }
+
+  const subOfficesByCenterKey = new Map<string, SubOfficeElectionRow[]>();
+  const unattributedSubOffices: SubOfficeElectionRow[] = [];
+  for (const so of subOfficeRows) {
+    const officeNumber = so.office_number as number | null;
+    const match =
+      officeNumber != null ? stationBySubOffice.get(`${so.commune_name}__${officeNumber}`) : undefined;
+    const observerCount = match ? observerCountByStation.get(match.id) ?? 0 : 0;
+    const row: SubOfficeElectionRow = {
+      id: so.id as string,
+      officeNumber,
+      officeNumberRaw: so.office_number_raw ?? (officeNumber != null ? String(officeNumber) : null),
+      partyVotes: (so.party_votes ?? {}) as Record<string, number>,
+      totalVotes: so.total_votes,
+      matchedStationId: match?.id ?? null,
+      observerCount,
+      hasCoverage: observerCount > 0,
+    };
+    if (match) {
+      const key = normalizeCenterName(match.centerName);
+      const list = subOfficesByCenterKey.get(key) ?? [];
+      list.push(row);
+      subOfficesByCenterKey.set(key, list);
+    } else {
+      unattributedSubOffices.push(row);
+    }
+  }
+  for (const list of subOfficesByCenterKey.values()) {
+    list.sort((a, b) => (a.officeNumber ?? 0) - (b.officeNumber ?? 0));
+  }
+  const subOfficePartyKeys = subOfficeRows[0] ? Object.keys(subOfficeRows[0].party_votes ?? {}) : [];
 
   const results: ElectionResultRow[] = (resultsRaw ?? []).map((r: any) => {
     const key = normalizeCenterName(r.center_name as string);
@@ -164,6 +231,7 @@ export async function getElectionResultsData(supabase: SupabaseClient) {
       matchedCommuneName: match?.communeName ?? null,
       observerCount,
       hasCoverage: observerCount > 0,
+      subOffices: subOfficesByCenterKey.get(key) ?? [],
     };
   });
 
@@ -200,5 +268,7 @@ export async function getElectionResultsData(supabase: SupabaseClient) {
     coveredOfficesCount,
     unmatchedOffices,
     partyKeys,
+    unattributedSubOffices,
+    subOfficePartyKeys,
   };
 }

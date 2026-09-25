@@ -25,8 +25,16 @@ export default async function ResultsPage() {
   const { dict, locale } = await getDictionary();
   const numberLocale = locale === "fr" ? "fr-FR" : "ar";
   const supabase = await createClient();
-  const { results, summary, totals, coveredOfficesCount, unmatchedOffices, partyKeys } =
-    await getElectionResultsData(supabase);
+  const {
+    results,
+    summary,
+    totals,
+    coveredOfficesCount,
+    unmatchedOffices,
+    partyKeys,
+    unattributedSubOffices,
+    subOfficePartyKeys,
+  } = await getElectionResultsData(supabase);
   const { rows: officialRows, ourRow: officialOurRow, ourVoteRank: officialOurRank, totalCandidates: officialTotal } =
     await getLocalListOfficialResult(supabase);
 
@@ -210,6 +218,7 @@ export default async function ResultsPage() {
                   </th>
                 ))}
                 <th className="text-start font-bold px-3 py-2.5">{t.colStatus}</th>
+                <th className="text-start font-bold px-3 py-2.5">{t.colSubOfficeDetail}</th>
               </tr>
             </thead>
 
@@ -250,11 +259,115 @@ export default async function ResultsPage() {
                     </td>
                   ))}
                   <td className="px-3 py-2.5 text-[var(--muted)]">{r.status}</td>
+                  <td className="px-3 py-2.5 whitespace-normal align-top" style={{ minWidth: "260px" }}>
+                    {r.subOffices.length > 0 ? (
+                      <details>
+                        <summary className="text-xs font-extrabold cursor-pointer" style={{ color: "var(--brand-blue)" }}>
+                          {t.subOfficeDetailToggle} ({r.subOffices.length})
+                        </summary>
+                        <div className="mt-2 rounded-lg border border-[var(--border)] overflow-x-auto">
+                          <table className="text-xs">
+                            <thead>
+                              <tr className="border-b border-[var(--border)] text-[var(--muted)] whitespace-nowrap">
+                                <th className="text-start font-bold px-2 py-1.5">{t.subOfficeTableOffice}</th>
+                                {subOfficePartyKeys.map((p) => (
+                                  <th
+                                    key={p}
+                                    className="text-start font-bold px-2 py-1.5"
+                                    style={p === OUR_PARTY_KEY ? { color: "var(--brand-blue)" } : undefined}
+                                  >
+                                    {p}
+                                  </th>
+                                ))}
+                                <th className="text-start font-bold px-2 py-1.5">{t.subOfficeTableTotal}</th>
+                                <th className="text-start font-bold px-2 py-1.5">{t.subOfficeTableCoverage}</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {r.subOffices.map((so) => (
+                                <tr key={so.id} className="border-b border-[var(--border)] last:border-0 whitespace-nowrap">
+                                  <td className="px-2 py-1.5 font-bold text-[var(--muted)]">
+                                    {so.officeNumberRaw ?? so.officeNumber}
+                                  </td>
+                                  {subOfficePartyKeys.map((p) => (
+                                    <td
+                                      key={p}
+                                      className="px-2 py-1.5"
+                                      style={p === OUR_PARTY_KEY ? { fontWeight: 800, color: "var(--brand-blue)" } : undefined}
+                                    >
+                                      {(so.partyVotes[p] ?? 0).toLocaleString(numberLocale)}
+                                    </td>
+                                  ))}
+                                  <td className="px-2 py-1.5 font-bold">
+                                    {(so.totalVotes ?? 0).toLocaleString(numberLocale)}
+                                  </td>
+                                  <td className="px-2 py-1.5">
+                                    <span
+                                      className="text-[10px] font-extrabold rounded-full px-2 py-0.5 text-white"
+                                      style={{ background: so.hasCoverage ? "var(--severity-neutral)" : "var(--severity-medium)" }}
+                                    >
+                                      {so.hasCoverage ? t.coverageBadgeYes : t.coverageBadgeNo}
+                                    </span>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </details>
+                    ) : (
+                      <span className="text-xs text-[var(--muted)]">{t.subOfficeNoDataLabel}</span>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+        <p className="text-xs text-[var(--muted)] mt-2">{t.subOfficeSectionNote}</p>
+
+        {unattributedSubOffices.length > 0 && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 mt-6 text-sm">
+            <div className="font-extrabold text-[var(--heading)] mb-1">{t.unattributedSubOfficesTitle}</div>
+            <p className="text-xs text-[var(--muted)] mb-3">{t.unattributedSubOfficesNote}</p>
+            <div className="rounded-lg border border-[var(--border)] overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-[var(--muted)] whitespace-nowrap">
+                    <th className="text-start font-bold px-2 py-1.5">{t.subOfficeTableOffice}</th>
+                    {subOfficePartyKeys.map((p) => (
+                      <th
+                        key={p}
+                        className="text-start font-bold px-2 py-1.5"
+                        style={p === OUR_PARTY_KEY ? { color: "var(--brand-blue)" } : undefined}
+                      >
+                        {p}
+                      </th>
+                    ))}
+                    <th className="text-start font-bold px-2 py-1.5">{t.subOfficeTableTotal}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {unattributedSubOffices.map((so) => (
+                    <tr key={so.id} className="border-b border-[var(--border)] last:border-0 whitespace-nowrap">
+                      <td className="px-2 py-1.5 font-bold text-[var(--muted)]">{so.officeNumberRaw ?? "—"}</td>
+                      {subOfficePartyKeys.map((p) => (
+                        <td
+                          key={p}
+                          className="px-2 py-1.5"
+                          style={p === OUR_PARTY_KEY ? { fontWeight: 800, color: "var(--brand-blue)" } : undefined}
+                        >
+                          {(so.partyVotes[p] ?? 0).toLocaleString(numberLocale)}
+                        </td>
+                      ))}
+                      <td className="px-2 py-1.5 font-bold">{(so.totalVotes ?? 0).toLocaleString(numberLocale)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </PageShell>
   );
