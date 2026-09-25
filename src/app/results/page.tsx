@@ -1,7 +1,12 @@
 import PageShell from "@/components/PageShell";
 import { createClient } from "@/lib/supabase/server";
 import { IconBallot } from "@/components/icons";
-import { getElectionResultsData, OUR_PARTY_KEY } from "@/lib/electionResults";
+import {
+  getElectionResultsData,
+  getLocalListOfficialResult,
+  LOCAL_LIST_DISTRICT_CONTEXT,
+  OUR_PARTY_KEY,
+} from "@/lib/electionResults";
 import ListSearch from "@/components/ListSearch";
 import { getDictionary } from "@/lib/i18n/getDictionary";
 
@@ -22,12 +27,80 @@ export default async function ResultsPage() {
   const supabase = await createClient();
   const { results, summary, totals, coveredOfficesCount, unmatchedOffices, partyKeys } =
     await getElectionResultsData(supabase);
+  const { rows: officialRows, ourRow: officialOurRow, ourVoteRank: officialOurRank, totalCandidates: officialTotal } =
+    await getLocalListOfficialResult(supabase);
 
   const t = dict.results;
   const sortedSummary = [...summary].sort((a, b) => a.listRank - b.listRank);
+  const sortedOfficialByVotes = [...officialRows].sort((a, b) => b.votes - a.votes);
 
   return (
     <PageShell title={t.title} subtitle={t.subtitle} icon={<IconBallot />}>
+      {officialOurRow && (
+        <div
+          className="rounded-xl border p-5 mb-6 shadow-sm"
+          style={{ borderColor: "var(--brand-blue)", background: "color-mix(in srgb, var(--brand-blue) 6%, var(--card))" }}
+        >
+          <div className="font-extrabold text-[15px] mb-1.5" style={{ color: "var(--brand-blue)" }}>
+            ✓ {t.officialSectionTitle}
+          </div>
+          <p className="text-sm text-[var(--muted)] leading-relaxed mb-4">{t.officialSectionSubtitle}</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            {[
+              { label: t.officialOurVotesLabel, value: officialOurRow.votes.toLocaleString(numberLocale) },
+              { label: t.officialOurRankLabel, value: `${officialOurRank} / ${officialTotal}` },
+              { label: t.officialSeatsLabel, value: officialOurRow.seatsWon.toLocaleString(numberLocale) },
+              { label: t.officialSeatsAvailableLabel, value: `${LOCAL_LIST_DISTRICT_CONTEXT.seatsAvailable}` },
+            ].map((s) => (
+              <div key={s.label} className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+                <div className="text-xs font-bold text-[var(--muted)]">{s.label}</div>
+                <div className="text-xl font-extrabold text-[var(--heading)] mt-1">{s.value}</div>
+              </div>
+            ))}
+          </div>
+          <details>
+            <summary className="text-sm font-bold cursor-pointer text-[var(--brand-blue)]">{t.officialTableToggle}</summary>
+            <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-sm overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-[var(--border)] text-[var(--muted)]">
+                    <th className="text-start font-bold px-3 py-2.5">{t.officialTableRank}</th>
+                    <th className="text-start font-bold px-3 py-2.5">{t.officialTableCandidate}</th>
+                    <th className="text-start font-bold px-3 py-2.5">{t.officialTableVotes}</th>
+                    <th className="text-start font-bold px-3 py-2.5">{t.officialTableSeats}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sortedOfficialByVotes.map((r, i) => (
+                    <tr
+                      key={r.id}
+                      className="border-b border-[var(--border)] last:border-0"
+                      style={r.isOurCandidate ? { background: "color-mix(in srgb, var(--brand-blue) 10%, transparent)" } : undefined}
+                    >
+                      <td className="px-3 py-2.5 font-bold text-[var(--muted)]">{i + 1}</td>
+                      <td className="px-3 py-2.5 font-extrabold text-[var(--heading)]">
+                        {r.candidateName}
+                        {r.isOurCandidate && (
+                          <span className="me-2 text-[11px] font-extrabold rounded-full px-2 py-0.5 text-white" style={{ background: "var(--brand-blue)" }}>
+                            {t.ourListBadge}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2.5">
+                        {r.votes.toLocaleString(numberLocale)}
+                        {r.approxReading && <span className="ms-1 text-[var(--muted)]">≈</span>}
+                      </td>
+                      <td className="px-3 py-2.5">{r.seatsWon}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-xs text-[var(--muted)] mt-2">{t.officialTableFootnote}</p>
+          </details>
+        </div>
+      )}
+
       <div
         className="rounded-xl border p-5 mb-6 shadow-sm"
         style={{ borderColor: "var(--severity-medium)", background: "color-mix(in srgb, var(--severity-medium) 8%, var(--card))" }}

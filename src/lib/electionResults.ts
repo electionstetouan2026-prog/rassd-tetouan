@@ -33,6 +33,55 @@ export type ElectionSummaryRow = {
   isOurList: boolean;
 };
 
+export type LocalListOfficialRow = {
+  id: string;
+  candidateRank: number;
+  candidateName: string;
+  votes: number;
+  seatsWon: number;
+  isOurCandidate: boolean;
+  approxReading: boolean;
+};
+
+// سياق الدائرة كما ورد فمحضر النتيجة الرسمية للائحة المحلية
+// (S55C-6e26092416210.pdf، ص 1-2) — 23 شتنبر 2026.
+export const LOCAL_LIST_DISTRICT_CONTEXT = {
+  registeredVoters: 268994,
+  electoralQuotient: 53798,
+  seatsAvailable: 5,
+};
+
+/**
+ * النتيجة الرسمية النهائية للائحة المحلية (ماشي تقدير) — من محضر لجنة
+ * الإحصاء المكلفة بإحصاء الأصوات وإعلان نتائج الاقتراع لـ"الدائرة
+ * الانتخابية المحلية: تطوان" (راجع supabase/add_local_list_official_result.sql).
+ * هاد الجدول فيه فقط مجموع الأصوات على مستوى الدائرة لكل لائحة من
+ * الـ17 لائحة (بلا تفصيل مكتب-بمكتب)، بعكس election_results اللي
+ * كيبقى تقدير تحليلي مبني على اللائحة الجهوية.
+ */
+export async function getLocalListOfficialResult(supabase: SupabaseClient) {
+  const { data } = await supabase
+    .from("local_list_official_result")
+    .select("*")
+    .order("candidate_rank");
+
+  const rows: LocalListOfficialRow[] = (data ?? []).map((r: any) => ({
+    id: r.id as string,
+    candidateRank: r.candidate_rank as number,
+    candidateName: r.candidate_name as string,
+    votes: r.votes as number,
+    seatsWon: r.seats_won as number,
+    isOurCandidate: !!r.is_our_candidate,
+    approxReading: !!r.approx_reading,
+  }));
+
+  const ourRow = rows.find((r) => r.isOurCandidate) ?? null;
+  const sortedByVotes = [...rows].sort((a, b) => b.votes - a.votes);
+  const ourVoteRank = ourRow ? sortedByVotes.findIndex((r) => r.id === ourRow.id) + 1 : null;
+
+  return { rows, ourRow, ourVoteRank, totalCandidates: rows.length };
+}
+
 /**
  * تطبيع اسم المركز للمطابقة بين "بيان المكتب" (ملف النتائج التقديري)
  * و center_name فـpolling_stations — الاختلافات المتوقعة: أشكال الألف/الياء/التاء

@@ -206,9 +206,23 @@ const fr = {
   results: {
     title: "Résultats de la liste locale",
     subtitle: "Résultats estimatifs/analytiques de la circonscription de Tétouan, détaillés par bureau central et école, reliés aux bureaux de vote et à l'état de couverture des observateurs sur notre plateforme.",
-    disclaimerTitle: "Attention : ce ne sont pas les résultats officiels de la liste locale",
+    officialSectionTitle: "Résultat officiel final de la liste locale",
+    officialSectionSubtitle:
+      "D'après le procès-verbal de la commission de recensement des votes de la circonscription électorale locale de Tétouan (23 septembre 2026) — chiffre officiel confirmé, pas une estimation. Source : S55C-6e26092416210.pdf, pages 1-2.",
+    officialOurVotesLabel: "Voix de Zouhair Rekkani (PPS)",
+    officialOurRankLabel: "Rang sur 17 listes",
+    officialSeatsLabel: "Sièges obtenus",
+    officialSeatsAvailableLabel: "Sièges disponibles dans la circonscription",
+    officialTableToggle: "Voir les résultats des 17 listes",
+    officialTableRank: "Rang",
+    officialTableCandidate: "Mandataire de la liste",
+    officialTableVotes: "Voix",
+    officialTableSeats: "Sièges",
+    officialTableFootnote:
+      "≈ = chiffre manuscrit difficile à lire avec certitude dans le procès-verbal original, approximatif à ±50 voix près, sans impact sur la répartition des 5 sièges.",
+    disclaimerTitle: "Détail par bureau/école ci-dessous : estimatif, pas officiel",
     disclaimerBody:
-      "La répartition des voix de la liste régionale par bureau central a été utilisée comme alternative analytique, avec substitution d'Ahlam Jaled par Zouhair Rekkani, puis rééquilibrage arithmétique du détail avec les totaux officiels des bureaux et des listes. Source : procès-verbal de la liste régionale (S55C-6e26092416210.pdf, pages 3-10) — outil analytique, pas un substitut au procès-verbal de la liste locale.",
+      "Le détail par bureau/école ci-dessous s'appuie sur la répartition des voix de la liste régionale par bureau central comme alternative analytique (avec substitution d'Ahlam Jaled par Zouhair Rekkani), faute de procès-verbal bureau par bureau pour la liste locale à ce jour. Source : procès-verbal de la liste régionale (S55C-6e26092416210.pdf, pages 3-10) — outil analytique pour répartir la couverture géographiquement, pas un substitut au chiffre officiel ci-dessus.",
     statRegistered: "Inscrits",
     statVoters: "Votants",
     statTurnout: "Taux de participation",
